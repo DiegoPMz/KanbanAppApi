@@ -12,27 +12,22 @@ namespace KanbanAppApi.Repositories
             _context = context;
         }
 
-        public async Task<Column> CreateColumnAsync(int boardId, Column column)
+        public async Task<Column?> CreateColumnAsync(Column column)
         {
-            column.BoardId = boardId;
             var newColumn = await _context.Columns.AddAsync(column);
             return newColumn.Entity;
         }
 
-        public async System.Threading.Tasks.Task DeleteColumnAsync(int boardId, int columnId)
+        public async Task DeleteColumnAsync(Column column)
         {
-            var column = await _context.Columns
-                .FirstOrDefaultAsync(c => c.Id == columnId && c.BoardId == boardId);
-            if (column == null) return;
-
             _context.Columns.Remove(column);
             await _context.SaveChangesAsync();
         }
 
-        public async Task<Column?> GetColumnByIdAsync(int boardId, int columnId)
+        public async Task<Column?> GetColumnByIdAsync(int columnId)
         {
             return await _context.Columns
-                .FirstOrDefaultAsync(c => c.Id == columnId && c.BoardId == boardId);
+               .FirstOrDefaultAsync(c => c.Id == columnId);
         }
 
         public async Task<IEnumerable<Column>> GetColumnsByBoardIdAsync(int boardId)
@@ -42,18 +37,11 @@ namespace KanbanAppApi.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Column?> UpdateColumnAsync(int boardId, Column column)
+        public async Task<Column?> UpdateColumnAsync(Column column)
         {
-            var existingColumn = await _context.Columns
-                .FirstOrDefaultAsync(c => c.Id == column.Id && c.BoardId == boardId);
-
-            if (existingColumn == null) return null;
-
-            existingColumn.Name = column.Name;
-            existingColumn.Position = column.Position;
+            _context.Columns.Update(column);
             await _context.SaveChangesAsync();
-
-            return existingColumn;
+            return column;
         }
     }
 }

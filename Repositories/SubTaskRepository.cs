@@ -13,46 +13,36 @@ namespace KanbanAppApi.Repositories
             _context = context;
         }
 
-        public async Task<SubTask> CreateSubTaskAsync(int taskId, SubTask subTask)
+        public async Task<SubTask?> CreateSubTaskAsync(SubTask subTask)
         {
-            subTask.TaskId = taskId;
             var newSubTask = await _context.Subtasks.AddAsync(subTask);
             return newSubTask.Entity;
         }
 
-        public void DeleteSubTask(int taskId, int subTaskId)
+        public async Task DeleteSubTask(SubTask subTask)
         {
-            var subTask = _context.Subtasks
-                .FirstOrDefault(st => st.Id == subTaskId && st.TaskId == taskId);
-            if (subTask == null) return;
-            
             _context.Subtasks.Remove(subTask);
+            await _context.SaveChangesAsync();
         }
 
-
-        public async Task<SubTask?> GetSubTaskByIdAsync(int taskId, int subTaskId)
+        public async Task<SubTask?> GetSubTaskByIdAsync(int subTaskId)
         {
             return await _context.Subtasks
-                .FirstOrDefaultAsync(st => st.Id == subTaskId && st.TaskId == taskId);
+                .FirstOrDefaultAsync(st => st.Id == subTaskId);
         }
 
-        public async Task<IEnumerable<SubTask>> GetSubTasksByTaskIdAsync(int taskId)
+        public async Task<IEnumerable<SubTask>> GetSubTasksByBoardTaskIdAsync(int boardTaskId)
         {
             return await _context.Subtasks
-                .Where(st => st.TaskId == taskId)
+                .Where(st => st.BoardTaskId == boardTaskId)
                 .ToListAsync();
         }
 
-        public async Task<SubTask?> UpdateSubTaskAsync(int taskId, SubTask subTask)
+        public async Task<SubTask?> UpdateSubTaskAsync(SubTask subTask)
         {
-            var existingSubTask = await _context.Subtasks
-                .FirstOrDefaultAsync(st => st.Id == subTask.Id && st.TaskId == taskId);
-
-            if (existingSubTask == null) return null;
-
-            _context.Entry(existingSubTask).CurrentValues.SetValues(subTask);
+            _context.Subtasks.Update(subTask);
             await _context.SaveChangesAsync();
-            return existingSubTask;
+            return subTask;
         }
     }
 }

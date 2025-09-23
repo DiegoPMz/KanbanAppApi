@@ -1,4 +1,5 @@
 ﻿using KanbanAppApi.Data;
+using KanbanAppApi.Dtos;
 using KanbanAppApi.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,51 +14,39 @@ namespace KanbanAppApi.Repositories
             _context = context;
         }
 
-        public async Task<Board> CreateBoardAsync(int userId, Board board)
+        public async Task<Board?> CreateBoardAsync(Board board)
         {
-            board.UserId = userId;
-            var newBoard = await _context.Boards.AddAsync(board);
-
-            return newBoard.Entity;
-        }
-
-        public async System.Threading.Tasks.Task DeleteBoardAsync(int userId, int boardId)
-        {
-            var board = await _context.Boards
-                .FirstOrDefaultAsync(b => b.Id == boardId && b.UserId == userId);
-
-            if (board == null) return;    
-
-            _context.Boards.Remove(board);
-            await _context.SaveChangesAsync(); 
-        }
-
-        public async Task<IEnumerable<Board>> GetAllBoardsAsync(int userId)
-        {
-           return await _context.Boards
-                .Where(b => b.UserId == userId)
-                .ToListAsync();
-        }
-
-        public async Task<Board?> GetBoardByIdAsync(int userId, int boardId)
-        {
-            return await _context.Boards
-                .FirstOrDefaultAsync(b => b.Id == boardId && b.UserId == userId);
-        }
-
-        public async Task<Board> UpdateBoardAsync(int userId, Board board)
-        {
-            var existingBoard = _context.Boards
-                .FirstOrDefault(b => b.Id == board.Id && b.UserId == userId);
-            if (existingBoard == null)
-            {
-                throw new KeyNotFoundException("Board not found or does not belong to the user.");
-            }
-
-            existingBoard.Name = board.Name;
+            var boardDb = await _context.Boards.AddAsync(board);
             await _context.SaveChangesAsync();
-            return existingBoard;
+            return boardDb.Entity;
         }
 
+        public async Task DeleteBoardAsync(Board board)
+        { 
+            _context.Boards.Remove(board);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<Board?> GetBoardByIdAsync(int boardId)
+        {
+            return await _context.Boards.SingleOrDefaultAsync(x => x.Id == boardId);
+        }
+
+        public async Task<IEnumerable<BoardSummaryDto>> GetBoardSummariesByUserIdAsync(Guid userId)
+        {
+            IEnumerable<BoardSummaryDto> boards = await _context.Boards
+                .Where(b => b.UserId == userId)
+                .Select(b => new BoardSummaryDto(b.Id,b.Name))
+                .ToListAsync();
+
+            return boards;
+        }
+
+        public async Task<Board?> UpdateBoardAsync(Board board)
+        {
+            _context.Boards.Update(board);
+            await _context.SaveChangesAsync();
+            return board;
+        }
     }
 }

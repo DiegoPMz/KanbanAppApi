@@ -4,10 +4,10 @@ namespace KanbanAppApi.Repositories
 {
     public interface IColumnRepository
     {
-        Task<Column> CreateColumnAsync(int boardId, Column column);
+        Task<Column?> CreateColumnAsync(Column column);
         Task<IEnumerable<Column>> GetColumnsByBoardIdAsync(int boardId);
-        Task<Column?> GetColumnByIdAsync(int boardId, int columnId);
-        Task<Column?> UpdateColumnAsync(int boardId, Column column);
-        System.Threading.Tasks.Task DeleteColumnAsync(int boardId, int columnId);
+        Task<Column?> GetColumnByIdAsync(int columnId);
+        Task<Column?> UpdateColumnAsync(Column column);
+        Task DeleteColumnAsync(Column column);
     }
 }

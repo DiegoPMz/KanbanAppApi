@@ -1,17 +1,14 @@
-﻿using KanbanAppApi.Models;
+﻿using KanbanAppApi.Dtos;
+using KanbanAppApi.Models;
 
 namespace KanbanAppApi.Repositories
 {
     public interface IBoardRepository
     {
-        Task<Board> CreateBoardAsync(int userId, Board board);
-
-        Task<Board?> GetBoardByIdAsync(int userId, int boardId);
-
-        Task<IEnumerable<Board>> GetAllBoardsAsync(int userId);
-
-        Task<Board> UpdateBoardAsync(int userId, Board board);
-
-        System.Threading.Tasks.Task DeleteBoardAsync(int userId, int boardId);
+        Task<Board?> CreateBoardAsync(Board board);
+        Task<Board?> GetBoardByIdAsync(int boardId);
+        Task<IEnumerable<BoardSummaryDto>> GetBoardSummariesByUserIdAsync(Guid userId);
+        Task<Board?> UpdateBoardAsync(Board board);
+        Task DeleteBoardAsync(Board board);
     }
 }
