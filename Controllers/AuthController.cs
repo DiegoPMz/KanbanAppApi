@@ -1,6 +1,7 @@
 ﻿using KanbanAppApi.Models;
 using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KanbanAppApi.Controllers
@@ -14,6 +15,8 @@ namespace KanbanAppApi.Controllers
         private readonly IUserService _userService;
         private readonly ITokenService _tokenService;
         private const string _CodeVerifierCookieName = "code_verifier";
+        private const string _AccessTokenCookie= "access_token";
+        private const string _RefreshTokenCookie = "refresh_token";
 
         public AuthController(IAuthService authService, IUserService userService, ITokenService tokenService)
         {
@@ -63,6 +66,15 @@ namespace KanbanAppApi.Controllers
             return Results.Redirect("http://localhost:5173");
         }
 
+        [Authorize]
+        [HttpGet("logout")]
+        public NoContent Logout()
+        {
+            HttpContext.Response.Cookies.Delete(_AccessTokenCookie);
+            HttpContext.Response.Cookies.Delete(_RefreshTokenCookie);
+            return TypedResults.NoContent();
+        }
+
         private void SetAuthCookies(User user)
         {
             var accessTokenCookieOptions = new CookieOptions
@@ -83,8 +95,8 @@ namespace KanbanAppApi.Controllers
             var accessToken = _tokenService.GenerateToken(user);
             var refreshToken = _tokenService.GenerateRefreshToken(user);
 
-            HttpContext.Response.Cookies.Append("access_token", accessToken, accessTokenCookieOptions);
-            HttpContext.Response.Cookies.Append("refresh_token", refreshToken, refreshTokenCookieOptions);
+            HttpContext.Response.Cookies.Append(_AccessTokenCookie, accessToken, accessTokenCookieOptions);
+            HttpContext.Response.Cookies.Append(_RefreshTokenCookie, refreshToken, refreshTokenCookieOptions);
         }
     }
 }

@@ -52,12 +52,12 @@ namespace KanbanAppApi.Services
         public async Task<ApiResponse<object?>> UpdateAppTheme(Guid userId, string theme)
         {
             var userDb = await _userRepository.GetUserByIdAsync(userId);
-            if (userDb is null) return ApiResponse<object?>.Failure("The user Id is invalid", []);
+            if (userDb is null) return ApiResponse<object?>.Failure("User not found", []);
 
             userDb.AppTheme = theme;
             await _userRepository.UpdateUserAsync(userDb);
 
-            return ApiResponse<object?>.Success(null,"App Theme changed");
+            return ApiResponse<object?>.Success(null, "Application theme updated successfully");
         }
     }
 }
