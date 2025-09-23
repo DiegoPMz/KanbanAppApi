@@ -8,8 +8,7 @@ namespace KanbanAppApi.Models
         public int Id { get; set; }
         public string Name { get; set; }
         public int Position { get; set; } = 0;
-        public List<Task> Tasks { get; } = [];
-
+        public List<BoardTask> BoardTask { get; } = [];
         public int BoardId { get; set; }
         public Board Board { get; set; } = null!;
     }

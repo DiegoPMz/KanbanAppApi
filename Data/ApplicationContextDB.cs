@@ -1,13 +1,14 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using KanbanAppApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace KanbanAppApi.Data
 {
     public class ApplicationContextDB(DbContextOptions<ApplicationContextDB> options) : DbContext(options)
     {
-        public DbSet<KanbanAppApi.Models.User> Users { get; set; }
-        public DbSet<KanbanAppApi.Models.Board> Boards { get; set; }
-        public DbSet<KanbanAppApi.Models.Column> Columns { get; set; }
-        public DbSet<KanbanAppApi.Models.Task> Tasks { get; set; }
-        public DbSet<KanbanAppApi.Models.SubTask> Subtasks { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<Board> Boards { get; set; }
+        public DbSet<Column> Columns { get; set; }
+        public DbSet<BoardTask> BoardTask { get; set; }
+        public DbSet<SubTask> Subtasks { get; set; }
     }
 }

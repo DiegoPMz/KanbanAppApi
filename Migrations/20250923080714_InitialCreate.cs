@@ -1,11 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace KanbanAppApi.Migrations
 {
     /// <inheritdoc />
-    public partial class AddKanbanAppDbEntryPoint : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -14,10 +15,9 @@ namespace KanbanAppApi.Migrations
                 name: "users",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Sub = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AppTheme = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -32,7 +32,7 @@ namespace KanbanAppApi.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    UserId = table.Column<int>(type: "int", nullable: false)
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -67,7 +67,7 @@ namespace KanbanAppApi.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "tasks",
+                name: "boardTasks",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -80,9 +80,9 @@ namespace KanbanAppApi.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_tasks", x => x.Id);
+                    table.PrimaryKey("PK_boardTasks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_tasks_columns_ColumnId",
+                        name: "FK_boardTasks_columns_ColumnId",
                         column: x => x.ColumnId,
                         principalTable: "columns",
                         principalColumn: "Id",
@@ -97,15 +97,15 @@ namespace KanbanAppApi.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     IsCompleted = table.Column<bool>(type: "bit", nullable: false),
-                    TaskId = table.Column<int>(type: "int", nullable: false)
+                    BoardTaskId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_subTasks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_subTasks_tasks_TaskId",
-                        column: x => x.TaskId,
-                        principalTable: "tasks",
+                        name: "FK_subTasks_boardTasks_BoardTaskId",
+                        column: x => x.BoardTaskId,
+                        principalTable: "boardTasks",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -116,19 +116,19 @@ namespace KanbanAppApi.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_boardTasks_ColumnId",
+                table: "boardTasks",
+                column: "ColumnId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_columns_BoardId",
                 table: "columns",
                 column: "BoardId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_subTasks_TaskId",
+                name: "IX_subTasks_BoardTaskId",
                 table: "subTasks",
-                column: "TaskId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_tasks_ColumnId",
-                table: "tasks",
-                column: "ColumnId");
+                column: "BoardTaskId");
         }
 
         /// <inheritdoc />
@@ -138,7 +138,7 @@ namespace KanbanAppApi.Migrations
                 name: "subTasks");
 
             migrationBuilder.DropTable(
-                name: "tasks");
+                name: "boardTasks");
 
             migrationBuilder.DropTable(
                 name: "columns");
