@@ -11,5 +11,12 @@ namespace KanbanAppApi.Models
 
         public Guid UserId { get; set; }
         public User User { get; set; } = null!;
+
+        public Board() { }
+        public Board(string name, Guid userId)
+        {
+            Name = name;
+            UserId = userId;
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using KanbanAppApi.Data;
+using KanbanAppApi.Dtos;
 using KanbanAppApi.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,6 +36,34 @@ namespace KanbanAppApi.Repositories
             return await _context.Columns
                 .Where(c => c.BoardId == boardId)
                 .ToListAsync();
+        }
+
+        public async Task<List<ColumnDto>> GetColumnsWithBoardTasksAndSubtasksAsync(int columnId)
+        {
+            List<ColumnDto> columnWithTasksAndSubtasks = await _context.Columns
+                .Where(c => c.Id == columnId)
+                .Select(c => new ColumnDto
+                {
+                    Id = c.Id,
+                    Name = c.Name,
+                    Position = c.Position,
+                    Color = c.Color,
+                    Tasks = c.BoardTask.Select(bt => new BoarTaskDto
+                    {
+                        Id = bt.Id,
+                        Title = bt.Title,
+                        Description = bt.Description,
+                        Position = bt.Position,
+                        Subtasks = bt.SubTasks.Select(st => new SubtaskDto
+                        {
+                            Id = st.Id,
+                            Description = st.Description,
+                            IsCompleted = st.IsCompleted,
+                        }).ToList()
+                    }).ToList()
+                }).ToListAsync();
+
+            return columnWithTasksAndSubtasks!;
         }
 
         public async Task<Column?> UpdateColumnAsync(Column column)
