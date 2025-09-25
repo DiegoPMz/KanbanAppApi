@@ -1,14 +1,15 @@
 ﻿using KanbanAppApi.Dtos;
+using KanbanAppApi.Filters;
 using KanbanAppApi.Responses;
 using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace KanbanAppApi.Controllers
 {
     [Authorize]
+    [RequireUserId]
     [ApiController]
     [Route("api/user")]
     public class UserController : ControllerBase
@@ -24,38 +25,34 @@ namespace KanbanAppApi.Controllers
         public async Task<
             Results<
                 Ok<ApiResponse<UserProfileDto?>>,
-                BadRequest<ApiResponse<UserProfileDto?>>,
-                UnauthorizedHttpResult
+                BadRequest<ApiResponse<UserProfileDto?>>
                 >
             > 
             GetUser()
         {
-            string? claimId = HttpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            if (claimId is null || !Guid.TryParse(claimId, out Guid userId ) ) return TypedResults.Unauthorized();
+            var userId = (Guid)HttpContext.Items["UserId"]!;
+            var userProfile = await _userService.GetUserBoardSummariesByIdAsync(userId);
 
-            ApiResponse<UserProfileDto?> userProfile = await _userService.GetUserBoardSummariesByIdAsync(userId);
-            if (!userProfile.Succeeded) return TypedResults.BadRequest(userProfile);
-
-            return TypedResults.Ok(userProfile);
+            return userProfile.Succeeded 
+                ? TypedResults.Ok(userProfile)
+                : TypedResults.BadRequest(userProfile);
         }
 
         [HttpPut("theme")]
         public async Task<
             Results<
                 Ok<ApiResponse<object?>>,
-                BadRequest<ApiResponse<object?>>,
-                UnauthorizedHttpResult
+                BadRequest<ApiResponse<object?>>
                 >
             > 
             SetTheme([FromBody] ChangeThemeRequest request)
         {
-            string? claimId = HttpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            if (claimId is null || !Guid.TryParse(claimId, out Guid userId) ) return TypedResults.Unauthorized();
+            var userId = (Guid)HttpContext.Items["UserId"]!;
+            var serviceResponse = await _userService.UpdateAppTheme(userId, request.Theme);
 
-            ApiResponse<object?> serviceResponse = await _userService.UpdateAppTheme(userId, request.Theme);
-            if (serviceResponse is null) return TypedResults.BadRequest(serviceResponse);
-
-            return TypedResults.Ok(serviceResponse);
+            return serviceResponse.Succeeded 
+                ? TypedResults.Ok(serviceResponse)
+                : TypedResults.BadRequest(serviceResponse);
         }
     }
 }
