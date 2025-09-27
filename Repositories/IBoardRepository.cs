@@ -10,5 +10,7 @@ namespace KanbanAppApi.Repositories
         Task<IEnumerable<BoardSummaryDto>> GetBoardSummariesByUserIdAsync(Guid userId);
         Task<Board?> UpdateBoardAsync(Board board);
         Task DeleteBoardAsync(Board board);
+        Task<bool> BoardExistsForUserAsync(Guid userId, int boardId);
+
     }
 }

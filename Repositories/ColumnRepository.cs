@@ -60,8 +60,12 @@ namespace KanbanAppApi.Repositories
                             Description = st.Description,
                             IsCompleted = st.IsCompleted,
                         }).ToList()
-                    }).ToList()
-                }).ToListAsync();
+                    })
+                    .OrderBy(t => t.Position)
+                    .ToList()
+                })
+                .OrderBy(c => c.Position)
+                .ToListAsync();
 
             return columnWithTasksAndSubtasks!;
         }
@@ -71,6 +75,19 @@ namespace KanbanAppApi.Repositories
             _context.Columns.Update(column);
             await _context.SaveChangesAsync();
             return column;
+        }
+
+        public async Task UpdateColumnsPositionsAsync(List<Column> columns)
+        {
+            _context.Columns.UpdateRange(columns);
+            await _context.SaveChangesAsync();
+        }
+
+        public Task<bool> ColumnExistsForUserAsync(Guid userId, int columnId)
+        {
+            return _context.Columns
+                .Include(c => c.Board)
+                .AnyAsync(c => c.Id == columnId && c.Board.UserId == userId);
         }
     }
 }

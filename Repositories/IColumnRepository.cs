@@ -11,5 +11,7 @@ namespace KanbanAppApi.Repositories
         Task<List<ColumnDto>> GetColumnsWithBoardTasksAndSubtasksAsync(int columnId);
         Task<Column?> UpdateColumnAsync(Column column);
         Task DeleteColumnAsync(Column column);
+        Task UpdateColumnsPositionsAsync(List<Column> columns);
+        Task<Boolean> ColumnExistsForUserAsync(Guid userId ,int columnId);
     }
 }

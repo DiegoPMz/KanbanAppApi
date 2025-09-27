@@ -48,5 +48,10 @@ namespace KanbanAppApi.Repositories
             await _context.SaveChangesAsync();
             return board;
         }
+
+        public async Task<bool> BoardExistsForUserAsync(Guid userId, int boardId)
+        {
+             return await _context.Boards.AnyAsync(b => b.Id == boardId && b.UserId == userId);
+        }
     }
 }
