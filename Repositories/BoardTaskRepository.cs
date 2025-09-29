@@ -21,7 +21,7 @@ namespace KanbanAppApi.Repositories
             return newTask.Entity;
         }
 
-        public async Task DeleteTask(BoardTask boardTask)
+        public async Task DeleteBoardTask(BoardTask boardTask)
         {
             _context.BoardTask.Remove(boardTask);
             await _context.SaveChangesAsync();           
@@ -44,6 +44,12 @@ namespace KanbanAppApi.Repositories
             _context.BoardTask.Update(boardTask);
             await _context.SaveChangesAsync();
             return boardTask;
+        }
+
+        public async Task UpdateBoardTasksPositionsAsync(List<BoardTask> boardTasks)
+        {
+            _context.BoardTask.UpdateRange(boardTasks);
+            await _context.SaveChangesAsync();
         }
     }
 }

@@ -8,6 +8,7 @@ namespace KanbanAppApi.Repositories
         Task<IEnumerable<BoardTask>> GetBoardTasksByColumnIdAsync(int columnId);
         Task<BoardTask?> GetBoardTaskByIdAsync(int boardTaskId);
         Task<BoardTask?> UpdateBoardTaskAsync(BoardTask boardTask);
-        Task DeleteTask(BoardTask boardTask);
+        Task UpdateBoardTasksPositionsAsync(List<BoardTask> boardTasks);
+        Task DeleteBoardTask(BoardTask boardTask);
     }
 }
