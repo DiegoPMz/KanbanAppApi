@@ -38,6 +38,15 @@ namespace KanbanAppApi.Repositories
                 .ToListAsync();
         }
 
+        public Task<bool> SubTaskExistsByUserIdAsync(Guid userId, int subTaskId)
+        {
+            return _context.Subtasks
+                .AnyAsync(st =>
+                    st.Id == subTaskId &&
+                    st.BoardTask.Column.Board.UserId == userId
+                );
+        }
+
         public async Task<SubTask?> UpdateSubTaskAsync(SubTask subTask)
         {
             _context.Subtasks.Update(subTask);

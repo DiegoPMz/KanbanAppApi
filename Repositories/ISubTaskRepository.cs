@@ -9,5 +9,6 @@ namespace KanbanAppApi.Repositories
         Task<SubTask?> GetSubTaskByIdAsync(int subTaskId);
         Task<SubTask?> UpdateSubTaskAsync(SubTask subTask);
         Task DeleteSubTask(SubTask subTask);
+        Task<bool> SubTaskExistsByUserIdAsync(Guid userId, int subTaskId);
     }
 }
