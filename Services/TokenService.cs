@@ -1,6 +1,5 @@
-﻿using KanbanAppApi.Dtos;
-using KanbanAppApi.Models;
-using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
+﻿using KanbanAppApi.Models;
+using KanbanAppApi.Repositories;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -12,10 +11,13 @@ namespace KanbanAppApi.Services
     {
         private readonly TokenValidationParameters _validationParams;
         private readonly JwtSecurityTokenHandler _handler = new();
+        private readonly ITokenEntityRespository _tokenEntityRespository;
 
-        public TokenService(IConfiguration configuration)
+        public TokenService(IConfiguration configuration, ITokenEntityRespository tokenEntityRespository)
         {
-            var secretKey =configuration["JwtSecretKey"]!;
+            _tokenEntityRespository = tokenEntityRespository;
+
+            var secretKey = configuration["JwtSecretKey"]!;
             _validationParams = new TokenValidationParameters
             {
                 ValidateIssuer = true,
@@ -33,15 +35,23 @@ namespace KanbanAppApi.Services
 
         public string GenerateToken(User user)
         {
-            var tokenDescriptor = CreateTokenDescriptor(user, DateTime.UtcNow.AddHours(1));
+            var (tokenDescriptor, tokenJti) = CreateTokenDescriptor(user, DateTime.UtcNow.AddHours(1));
             var token = _handler.CreateToken(tokenDescriptor);
             return _handler.WriteToken(token);
         }
 
-        public string GenerateRefreshToken(User user)
+        public async Task<string> GenerateRefreshToken(User user)
         {
-            var tokenDescriptor = CreateTokenDescriptor(user, DateTime.UtcNow.AddDays(30));
+            var (tokenDescriptor, tokenJti) = CreateTokenDescriptor(user, DateTime.UtcNow.AddDays(30));
             var token = _handler.CreateToken(tokenDescriptor);
+
+            TokenEntity refreshToken = new()
+            {
+                Jti = tokenJti,
+                UserId = user.Id,
+            };
+
+            await _tokenEntityRespository.StoreTokenAsync(refreshToken);
             return _handler.WriteToken(token);
         }
 
@@ -58,15 +68,18 @@ namespace KanbanAppApi.Services
             }
         }
 
-        private SecurityTokenDescriptor CreateTokenDescriptor(User user, DateTime expires)
+        private (SecurityTokenDescriptor tokenDescriptor, Guid tokenJti) CreateTokenDescriptor(User user, DateTime expires)
         {
+            var tokenJti = Guid.NewGuid();  
+
             var claims = new List<Claim>
             {
                 new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Email, user.Email),
+                new(JwtRegisteredClaimNames.Jti, tokenJti.ToString()),
             };
 
-            return new SecurityTokenDescriptor
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims, "Token"),
                 Expires = expires,
@@ -79,6 +92,14 @@ namespace KanbanAppApi.Services
                 Issuer = _validationParams.ValidIssuer,
                 Audience = _validationParams.ValidAudience,
             };
+
+
+            return (tokenDescriptor, tokenJti);
+        }
+
+        public async Task InvalidateRefreshTokenByJtiAsync(Guid tokenJti)
+        {
+            await _tokenEntityRespository.DeleteTokenByJtiAsync(tokenJti);
         }
     }
 }

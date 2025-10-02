@@ -6,7 +6,8 @@ namespace KanbanAppApi.Services
     public interface ITokenService
     {
         string GenerateToken(User user);
-        string GenerateRefreshToken(User user);
+        Task<string> GenerateRefreshToken(User user);
         ClaimsPrincipal? ValidateToken(string token);
+        Task InvalidateRefreshTokenByJtiAsync(Guid tokenJti);
     }
 }

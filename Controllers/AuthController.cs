@@ -1,8 +1,10 @@
-﻿using KanbanAppApi.Models;
+﻿using KanbanAppApi.Filters;
+using KanbanAppApi.Models;
 using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace KanbanAppApi.Controllers
 {
@@ -58,9 +60,11 @@ namespace KanbanAppApi.Controllers
             if (userDb is null)
             {
                 User? createdUser = await _userService.CreateUserFromSubAsync(userClaims.Sub, userClaims.Email);
-                if (createdUser is not null) SetAuthCookies(createdUser);
-            } else {
-                SetAuthCookies(userDb);
+                if (createdUser is not null) await SetAuthCookies(createdUser);
+            } 
+            else 
+            {
+                await SetAuthCookies(userDb);
             }
 
             return Results.Redirect("http://localhost:5173");
@@ -68,14 +72,45 @@ namespace KanbanAppApi.Controllers
 
         [Authorize]
         [HttpGet("logout")]
-        public NoContent Logout()
+        public async Task<NoContent> Logout()
         {
             HttpContext.Response.Cookies.Delete(_AccessTokenCookie);
             HttpContext.Response.Cookies.Delete(_RefreshTokenCookie);
+
+            var tokenJtiClaim = HttpContext.User.Claims
+                .FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)!;
+
+            if (Guid.TryParse(tokenJtiClaim.Value, out var jti)) await _tokenService.InvalidateRefreshTokenByJtiAsync(jti);
             return TypedResults.NoContent();
         }
 
-        private void SetAuthCookies(User user)
+        [Authorize]
+        [RequireUserId]
+        [HttpPost("refresh")]
+        public async Task<IResult> Refresh()
+        {
+            HttpContext.Response.Cookies.Delete(_AccessTokenCookie);
+            HttpContext.Response.Cookies.Delete(_RefreshTokenCookie);
+
+            var userId = (Guid)HttpContext.Items["UserId"]!;
+            User? user = await  _userService.GetUserDetailsByIdAsync(userId);
+
+            if (user is null) return TypedResults.Unauthorized();
+
+            var tokenJtiClaim = HttpContext.User.Claims
+                .FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti);
+
+            if (tokenJtiClaim is null || !Guid.TryParse(tokenJtiClaim.Value, out var jti))
+                return TypedResults.Unauthorized();
+
+            await _tokenService.InvalidateRefreshTokenByJtiAsync(jti);
+
+            await SetAuthCookies(user);
+            return TypedResults.Ok();
+        }
+
+
+        private async Task SetAuthCookies(User user)
         {
             var accessTokenCookieOptions = new CookieOptions
             {
@@ -93,7 +128,7 @@ namespace KanbanAppApi.Controllers
             };
 
             var accessToken = _tokenService.GenerateToken(user);
-            var refreshToken = _tokenService.GenerateRefreshToken(user);
+            var refreshToken = await _tokenService.GenerateRefreshToken(user);
 
             HttpContext.Response.Cookies.Append(_AccessTokenCookie, accessToken, accessTokenCookieOptions);
             HttpContext.Response.Cookies.Append(_RefreshTokenCookie, refreshToken, refreshTokenCookieOptions);

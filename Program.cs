@@ -19,13 +19,18 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationContextDB>(options => options.UseSqlServer(connectionString));
 
 builder.Services.AddHttpClient();
+
 builder.Services.AddScoped<IUserRepository, UserRespository>();
 builder.Services.AddScoped<IBoardRepository, BoardRepository>();
 builder.Services.AddScoped<IColumnRepository, ColumnRepository>();
 builder.Services.AddScoped<IBoardTaskRepository, BoardTaskRepository>();
 builder.Services.AddScoped<ISubTaskRepository, SubTaskRepository>();
+builder.Services.AddScoped<ITokenEntityRespository,TokenEntityRespository>(); 
 
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IBoardService, BoardService>();
+builder.Services.AddScoped<IColumnService, ColumnService>();
+builder.Services.AddScoped<IBoardTaskService, BoardTaskService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 

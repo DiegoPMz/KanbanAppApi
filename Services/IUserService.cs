@@ -10,5 +10,6 @@ namespace KanbanAppApi.Services
         Task<User?> GetUserBySubAsync(string sub);
         Task<ApiResponse<UserProfileDto?>> GetUserBoardSummariesByIdAsync(Guid userId);
         Task<ApiResponse<object?>> UpdateAppTheme(Guid userId, string theme);
+        Task<User?> GetUserDetailsByIdAsync(Guid userId);
     }
 }

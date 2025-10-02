@@ -49,6 +49,11 @@ namespace KanbanAppApi.Services
             return await _userRepository.GetUserBySubAsync(sub);
         }
 
+        public Task<User?> GetUserDetailsByIdAsync(Guid userId)
+        {
+            return _userRepository.GetUserByIdAsync(userId);
+        }
+
         public async Task<ApiResponse<object?>> UpdateAppTheme(Guid userId, string theme)
         {
             var userDb = await _userRepository.GetUserByIdAsync(userId);
