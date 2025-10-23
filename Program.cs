@@ -3,8 +3,8 @@ using KanbanAppApi.Repositories;
 using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +25,7 @@ builder.Services.AddScoped<IBoardRepository, BoardRepository>();
 builder.Services.AddScoped<IColumnRepository, ColumnRepository>();
 builder.Services.AddScoped<IBoardTaskRepository, BoardTaskRepository>();
 builder.Services.AddScoped<ISubTaskRepository, SubTaskRepository>();
-builder.Services.AddScoped<ITokenEntityRespository,TokenEntityRespository>(); 
+builder.Services.AddScoped<ITokenEntityRepository,TokenEntityRepository>(); 
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IBoardService, BoardService>();
@@ -46,36 +46,34 @@ builder.Services.AddCors(options =>
     });
 });
 
-var secretKey = builder.Configuration["JwtSecretKey"]!;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-   .AddJwtBearer(options =>
-   {
-       options.TokenValidationParameters = new TokenValidationParameters
-       { 
-           ValidateIssuer = true,
-           ValidIssuer = "KanbanAppApi",
-           ValidateAudience = true,
-           ValidAudience = "KanbanApp",
-           ValidateLifetime = true,
-           ClockSkew = TimeSpan.Zero,
-           ValidateIssuerSigningKey = true,
-           IssuerSigningKey = new SymmetricSecurityKey(
-               Encoding.UTF8.GetBytes(secretKey)
-           )
-       };
-
-       options.Events = new JwtBearerEvents
-       {
-           OnMessageReceived = context =>
-           {
-               if (context.Request.Cookies.TryGetValue("auth_token", out var token))
-               {
-                   context.Token = token;
-               }
-               return Task.CompletedTask;
-           }
-       };
-   });
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters()
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JwtIssuer"]!,
+            ValidAudience = builder.Configuration["JwtAudience"]!,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSecretKey"]!)),
+        };
+        
+        options.Events = new JwtBearerEvents()
+        {
+            OnMessageReceived = context =>
+            {
+                var accessTokenExist = context.Request.Cookies.TryGetValue("access_token", out var accessToken);
+                if (accessTokenExist)
+                {
+                    context.Token = accessToken;
+                }
+                
+                return Task.CompletedTask;                
+            }
+        };
+    });
 
 var app = builder.Build();
 

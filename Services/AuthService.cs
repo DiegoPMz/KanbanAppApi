@@ -75,14 +75,14 @@ namespace KanbanAppApi.Services
 
         public (string GoogleUrl, string CodeVerifier) BuildGoogleLoginUrl()
         {
-            var (code_challenge, verifier) = Utilities.PKCEUtil.Generate();
+            var (codeChallenge, verifier) = Utilities.PKCEUtil.Generate();
             var googleQuery = new Dictionary<string, string?>
             {
                 ["client_id"] = _configuration["Google:ClientId"],
                 ["response_type"] = "code",
                 ["scope"] = "openid email profile",
                 ["redirect_uri"] = RouteCallback,
-                ["code_challenge"] = code_challenge,
+                ["code_challenge"] = codeChallenge,
                 ["code_challenge_method"] = "S256",
                 ["prompt"] = "consent"
             };
@@ -94,20 +94,18 @@ namespace KanbanAppApi.Services
             return (googleUrl, verifier);
         }
 
-        private GoogleIdTokenClaims MapGoogleClaims(ClaimsPrincipal principal)
+        private static GoogleIdTokenClaims MapGoogleClaims(ClaimsPrincipal principal) => new()
         {
-            return new GoogleIdTokenClaims
-            {
-                Sub = principal.FindFirst("sub")?.Value ?? "",
-                Email = principal.FindFirst("email")?.Value ?? "",
-                EmailVerified = bool.TryParse(principal.FindFirst("email_verified")?.Value, out var verified) ? verified : null,
-                Name = principal.FindFirst("name")?.Value,
-                Picture = principal.FindFirst("picture")?.Value,
-                Exp = long.Parse(principal.FindFirst("exp")?.Value ?? "0"),
-                Iat = long.Parse(principal.FindFirst("iat")?.Value ?? "0"),
-                Aud = principal.FindFirst("aud")?.Value ?? "",
-                Iss = principal.FindFirst("iss")?.Value ?? ""
-            };
-        }
+            Sub = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "",
+            Email = principal.FindFirst(ClaimTypes.Email)?.Value ?? "",
+            EmailVerified = bool.TryParse(principal.FindFirst("email_verified")?.Value, out var verified) ? verified : null,
+            Name = principal.FindFirst("name")?.Value,
+            Picture = principal.FindFirst("picture")?.Value,
+            Exp = long.Parse(principal.FindFirst("exp")?.Value ?? "0"),
+            Iat = long.Parse(principal.FindFirst("iat")?.Value ?? "0"),
+            Aud = principal.FindFirst("aud")?.Value ?? "",
+            Iss = principal.FindFirst("iss")?.Value ?? "",
+            GivenName = principal.FindFirst(ClaimTypes.GivenName)?.Value,
+        };
     }
 }

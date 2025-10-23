@@ -1,5 +1,4 @@
-﻿using KanbanAppApi.Filters;
-using KanbanAppApi.Models;
+﻿using KanbanAppApi.Models;
 using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -16,9 +15,6 @@ namespace KanbanAppApi.Controllers
         private readonly IAuthService _authService;
         private readonly IUserService _userService;
         private readonly ITokenService _tokenService;
-        private const string _CodeVerifierCookieName = "code_verifier";
-        private const string _AccessTokenCookie= "access_token";
-        private const string _RefreshTokenCookie = "refresh_token";
 
         public AuthController(IAuthService authService, IUserService userService, ITokenService tokenService)
         {
@@ -27,12 +23,16 @@ namespace KanbanAppApi.Controllers
             _tokenService = tokenService;
         }
 
+        private const string CodeVerifierCookieName = "code_verifier";
+        private const string AccessTokenCookie= "access_token";
+        private const string RefreshTokenCookie = "refresh_token";
+
         [HttpGet("login")]
         public void Login()
         {
-            var (GoogleUrl, CodeVerifier) = _authService.BuildGoogleLoginUrl();
+            var (googleUrl, codeVerifier) = _authService.BuildGoogleLoginUrl();
 
-            HttpContext.Response.Cookies.Append(_CodeVerifierCookieName, CodeVerifier, new CookieOptions
+            HttpContext.Response.Cookies.Append(CodeVerifierCookieName, codeVerifier, new CookieOptions
             {
                 SameSite = SameSiteMode.Lax,
                 Secure = true,
@@ -40,33 +40,37 @@ namespace KanbanAppApi.Controllers
                 Expires = DateTimeOffset.UtcNow.AddMinutes(5)
             });
 
-            HttpContext.Response.Redirect(GoogleUrl);
+            HttpContext.Response.Redirect(googleUrl);
         }
 
         [HttpGet("callback")]
         public async Task<IResult> Callback([FromQuery] string code)
         {
-            HttpContext.Request.Cookies.TryGetValue(_CodeVerifierCookieName, out var codeVerifier);
+            HttpContext.Request.Cookies.TryGetValue(CodeVerifierCookieName, out var codeVerifier);
             if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(codeVerifier)) return TypedResults.Unauthorized();
 
             GoogleTokenResponse tokens = await _authService.ExchangeCodeForTokenAsync(code, codeVerifier);
-            if (tokens is null) return TypedResults.Unauthorized();
+            if (string.IsNullOrEmpty(tokens.id_token)) return TypedResults.Unauthorized();
 
-            HttpContext.Response.Cookies.Delete(_CodeVerifierCookieName);
+            HttpContext.Response.Cookies.Delete(CodeVerifierCookieName);
             GoogleIdTokenClaims userClaims = await _authService.ValidateGoogleIdTokenAsync(tokens.id_token);
 
-            User? userDb = await _userService.GetUserBySubAsync(userClaims.Sub);
-
-            if (userDb is null)
+            var existingUser = await _userService.GetUserBySubAsync(userClaims.Sub);
+            
+            if (existingUser is null)
             {
-                User? createdUser = await _userService.CreateUserFromSubAsync(userClaims.Sub, userClaims.Email);
-                if (createdUser is not null) await SetAuthCookies(createdUser);
+                var createdUser = await _userService.CreateUserFromSubAsync(userClaims.Sub, userClaims.Email);
+                if (createdUser is null) return TypedResults.Unauthorized();
+                
+                var (accessToken,refreshToken) = await _tokenService.CreateAuthTokens(createdUser);
+                SetAuthCookies(accessToken, refreshToken);
             } 
             else 
             {
-                await SetAuthCookies(userDb);
+                var (accessToken,refreshToken) = await _tokenService.CreateAuthTokens(existingUser);
+                SetAuthCookies(accessToken, refreshToken);
             }
-
+            
             return Results.Redirect("http://localhost:5173");
         }
 
@@ -74,8 +78,8 @@ namespace KanbanAppApi.Controllers
         [HttpGet("logout")]
         public async Task<NoContent> Logout()
         {
-            HttpContext.Response.Cookies.Delete(_AccessTokenCookie);
-            HttpContext.Response.Cookies.Delete(_RefreshTokenCookie);
+            HttpContext.Response.Cookies.Delete(AccessTokenCookie);
+            HttpContext.Response.Cookies.Delete(RefreshTokenCookie);
 
             var tokenJtiClaim = HttpContext.User.Claims
                 .FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)!;
@@ -84,54 +88,58 @@ namespace KanbanAppApi.Controllers
             return TypedResults.NoContent();
         }
 
-        [Authorize]
-        [RequireUserId]
         [HttpPost("refresh")]
-        public async Task<IResult> Refresh()
+        public async Task<ActionResult> Refresh()
         {
-            HttpContext.Response.Cookies.Delete(_AccessTokenCookie);
-            HttpContext.Response.Cookies.Delete(_RefreshTokenCookie);
+            var refreshTokenCookie = HttpContext.Request.Cookies[RefreshTokenCookie];
+            if (string.IsNullOrEmpty(refreshTokenCookie)) return Unauthorized();
 
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            User? user = await  _userService.GetUserDetailsByIdAsync(userId);
+            var tokenValidation = await _tokenService.ValidateToken(refreshTokenCookie);
+            if (!tokenValidation.IsValid)
+            {
+                HttpContext.Response.Cookies.Delete(RefreshTokenCookie);
+                return Unauthorized();
+            }
 
-            if (user is null) return TypedResults.Unauthorized();
+            var tokenJtiClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+            if (tokenJtiClaim is null || !Guid.TryParse(tokenJtiClaim, out var tokenJti)) return Unauthorized();
+            
+            await _tokenService.InvalidateRefreshTokenByJtiAsync(tokenJti);
+           
+            var userIdClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId )) return Unauthorized();
 
-            var tokenJtiClaim = HttpContext.User.Claims
-                .FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti);
-
-            if (tokenJtiClaim is null || !Guid.TryParse(tokenJtiClaim.Value, out var jti))
-                return TypedResults.Unauthorized();
-
-            await _tokenService.InvalidateRefreshTokenByJtiAsync(jti);
-
-            await SetAuthCookies(user);
-            return TypedResults.Ok();
+            var user = await _userService.GetUserDetailsByIdAsync(userId);
+            if (user is null) return Unauthorized();
+            
+            var (accessToken, refreshToken) = await _tokenService.CreateAuthTokens(user);
+            SetAuthCookies(accessToken, refreshToken);
+            
+            return Ok(new
+            {
+                message = "Tokens created successfully",
+                access_token = accessToken,
+                refresh_token = refreshToken
+            });
         }
-
-
-        private async Task SetAuthCookies(User user)
+        
+        private void SetAuthCookies(string accessToken, string refreshToken )
         {
-            var accessTokenCookieOptions = new CookieOptions
+            HttpContext.Response.Cookies.Append(AccessTokenCookie, accessToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 Expires = DateTimeOffset.UtcNow.AddHours(1)
-            };
-            var refreshTokenCookieOptions = new CookieOptions
+            });
+            
+            HttpContext.Response.Cookies.Append(RefreshTokenCookie, refreshToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 Expires = DateTimeOffset.UtcNow.AddDays(30)
-            };
-
-            var accessToken = _tokenService.GenerateToken(user);
-            var refreshToken = await _tokenService.GenerateRefreshToken(user);
-
-            HttpContext.Response.Cookies.Append(_AccessTokenCookie, accessToken, accessTokenCookieOptions);
-            HttpContext.Response.Cookies.Append(_RefreshTokenCookie, refreshToken, refreshTokenCookieOptions);
+            });
         }
     }
 }

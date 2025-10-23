@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KanbanAppApi.Data
 {
-    public class ApplicationContextDB : DbContext
+    public class ApplicationContextDB(DbContextOptions<ApplicationContextDB> options) : DbContext(options)
     {
         public DbSet<User> Users { get; set; }
         public DbSet<Board> Boards { get; set; }
@@ -11,9 +11,6 @@ namespace KanbanAppApi.Data
         public DbSet<BoardTask> BoardTask { get; set; }
         public DbSet<SubTask> Subtasks { get; set; }
         public DbSet<TokenEntity> Tokens { get; set; }
-
-        public ApplicationContextDB(DbContextOptions<ApplicationContextDB> options) 
-            : base(options){}
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

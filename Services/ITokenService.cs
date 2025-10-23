@@ -1,5 +1,5 @@
 ﻿using KanbanAppApi.Models;
-using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
 
 namespace KanbanAppApi.Services
 {
@@ -7,7 +7,8 @@ namespace KanbanAppApi.Services
     {
         string GenerateToken(User user);
         Task<string> GenerateRefreshToken(User user);
-        ClaimsPrincipal? ValidateToken(string token);
+        Task<(string accessToken, string refreshToken)> CreateAuthTokens(User user);
+        Task<TokenValidationResult> ValidateToken(string token);
         Task InvalidateRefreshTokenByJtiAsync(Guid tokenJti);
     }
 }

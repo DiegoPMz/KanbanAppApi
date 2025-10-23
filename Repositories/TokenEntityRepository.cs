@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace KanbanAppApi.Repositories
 {
-    public class TokenEntityRespository : ITokenEntityRespository
+    public class TokenEntityRepository : ITokenEntityRepository
     {
         private readonly ApplicationContextDB _context;
 
-        public TokenEntityRespository(ApplicationContextDB context)
+        public TokenEntityRepository(ApplicationContextDB context)
         {
             _context = context;
         }
