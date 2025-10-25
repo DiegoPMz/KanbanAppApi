@@ -1,10 +1,9 @@
 ﻿using KanbanAppApi.Models;
 
-namespace KanbanAppApi.Repositories
+namespace KanbanAppApi.Repositories;
+
+public interface ITokenEntityRepository
 {
-    public interface ITokenEntityRepository
-    {
-        Task StoreTokenAsync(TokenEntity token);
-        Task DeleteTokenByJtiAsync(Guid refreshTokenJti);
-    }
+    Task StoreTokenAsync(TokenEntity token);
+    Task DeleteTokenByJtiAsync(Guid refreshTokenJti);
 }

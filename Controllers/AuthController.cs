@@ -5,141 +5,141 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 
-namespace KanbanAppApi.Controllers
+namespace KanbanAppApi.Controllers;
+
+[AllowAnonymous]
+[ApiController]
+[Route("api/auth")]
+public class AuthController : ControllerBase
 {
-    [AllowAnonymous]
-    [ApiController]
-    [Route("api/auth")]
-    public class AuthController : ControllerBase
+    private readonly IAuthService _authService;
+    private readonly IUserService _userService;
+    private readonly ITokenService _tokenService;
+
+    private const string CodeVerifierCookieName = "code_verifier";
+    private const string AccessTokenCookie= "access_token";
+    private const string RefreshTokenCookie = "refresh_token";
+    
+    public AuthController(IAuthService authService, IUserService userService, ITokenService tokenService)
     {
-        private readonly IAuthService _authService;
-        private readonly IUserService _userService;
-        private readonly ITokenService _tokenService;
+        _authService = authService;
+        _userService = userService;
+        _tokenService = tokenService;
+    }
+    
+    [HttpGet("login")]
+    public void Login()
+    {
+        var (googleUrl, codeVerifier) = _authService.BuildGoogleLoginUrl();
 
-        public AuthController(IAuthService authService, IUserService userService, ITokenService tokenService)
+        HttpContext.Response.Cookies.Append(CodeVerifierCookieName, codeVerifier, new CookieOptions
         {
-            _authService = authService;
-            _userService = userService;
-            _tokenService = tokenService;
-        }
+            SameSite = SameSiteMode.Lax,
+            Secure = true,
+            HttpOnly = true,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(5)
+        });
 
-        private const string CodeVerifierCookieName = "code_verifier";
-        private const string AccessTokenCookie= "access_token";
-        private const string RefreshTokenCookie = "refresh_token";
+        HttpContext.Response.Redirect(googleUrl);
+    }
 
-        [HttpGet("login")]
-        public void Login()
-        {
-            var (googleUrl, codeVerifier) = _authService.BuildGoogleLoginUrl();
+    [HttpGet("callback")]
+    public async Task<IActionResult> Callback([FromQuery] string code)
+    {
+        HttpContext.Request.Cookies.TryGetValue(CodeVerifierCookieName, out var codeVerifier);
+        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(codeVerifier)) return Unauthorized();
 
-            HttpContext.Response.Cookies.Append(CodeVerifierCookieName, codeVerifier, new CookieOptions
-            {
-                SameSite = SameSiteMode.Lax,
-                Secure = true,
-                HttpOnly = true,
-                Expires = DateTimeOffset.UtcNow.AddMinutes(5)
-            });
+        GoogleTokenResponse tokens = await _authService.ExchangeCodeForTokenAsync(code, codeVerifier);
+        if (string.IsNullOrEmpty(tokens.id_token)) return Unauthorized();
 
-            HttpContext.Response.Redirect(googleUrl);
-        }
+        HttpContext.Response.Cookies.Delete(CodeVerifierCookieName);
+        GoogleIdTokenClaims userClaims = await _authService.ValidateGoogleIdTokenAsync(tokens.id_token);
 
-        [HttpGet("callback")]
-        public async Task<IResult> Callback([FromQuery] string code)
-        {
-            HttpContext.Request.Cookies.TryGetValue(CodeVerifierCookieName, out var codeVerifier);
-            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(codeVerifier)) return TypedResults.Unauthorized();
-
-            GoogleTokenResponse tokens = await _authService.ExchangeCodeForTokenAsync(code, codeVerifier);
-            if (string.IsNullOrEmpty(tokens.id_token)) return TypedResults.Unauthorized();
-
-            HttpContext.Response.Cookies.Delete(CodeVerifierCookieName);
-            GoogleIdTokenClaims userClaims = await _authService.ValidateGoogleIdTokenAsync(tokens.id_token);
-
-            var existingUser = await _userService.GetUserBySubAsync(userClaims.Sub);
+        var existingUser = await _userService.GetBySubAsync(userClaims.Sub);
             
-            if (existingUser is null)
-            {
-                var createdUser = await _userService.CreateUserFromSubAsync(userClaims.Sub, userClaims.Email);
-                if (createdUser is null) return TypedResults.Unauthorized();
+        if (existingUser.IsFailed )
+        {
+            var createdUser = await _userService.CreateFromSubAsync(userClaims.Sub, userClaims.Email);
+            if (createdUser.IsFailed) return Unauthorized();
                 
-                var (accessToken,refreshToken) = await _tokenService.CreateAuthTokens(createdUser);
-                SetAuthCookies(accessToken, refreshToken);
-            } 
-            else 
-            {
-                var (accessToken,refreshToken) = await _tokenService.CreateAuthTokens(existingUser);
-                SetAuthCookies(accessToken, refreshToken);
-            }
-            
-            return Results.Redirect("http://localhost:5173");
-        }
-
-        [Authorize]
-        [HttpGet("logout")]
-        public async Task<NoContent> Logout()
-        {
-            HttpContext.Response.Cookies.Delete(AccessTokenCookie);
-            HttpContext.Response.Cookies.Delete(RefreshTokenCookie);
-
-            var tokenJtiClaim = HttpContext.User.Claims
-                .FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)!;
-
-            if (Guid.TryParse(tokenJtiClaim.Value, out var jti)) await _tokenService.InvalidateRefreshTokenByJtiAsync(jti);
-            return TypedResults.NoContent();
-        }
-
-        [HttpPost("refresh")]
-        public async Task<ActionResult> Refresh()
-        {
-            var refreshTokenCookie = HttpContext.Request.Cookies[RefreshTokenCookie];
-            if (string.IsNullOrEmpty(refreshTokenCookie)) return Unauthorized();
-
-            var tokenValidation = await _tokenService.ValidateToken(refreshTokenCookie);
-            if (!tokenValidation.IsValid)
-            {
-                HttpContext.Response.Cookies.Delete(RefreshTokenCookie);
-                return Unauthorized();
-            }
-
-            var tokenJtiClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-            if (tokenJtiClaim is null || !Guid.TryParse(tokenJtiClaim, out var tokenJti)) return Unauthorized();
-            
-            await _tokenService.InvalidateRefreshTokenByJtiAsync(tokenJti);
-           
-            var userIdClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-            if (!Guid.TryParse(userIdClaim, out var userId )) return Unauthorized();
-
-            var user = await _userService.GetUserDetailsByIdAsync(userId);
-            if (user is null) return Unauthorized();
-            
-            var (accessToken, refreshToken) = await _tokenService.CreateAuthTokens(user);
+            var (accessToken,refreshToken) = await _tokenService.CreateAuthTokens(createdUser.Value);
             SetAuthCookies(accessToken, refreshToken);
-            
-            return Ok(new
-            {
-                message = "Tokens created successfully",
-                access_token = accessToken,
-                refresh_token = refreshToken
-            });
-        }
-        
-        private void SetAuthCookies(string accessToken, string refreshToken )
+        } 
+        else 
         {
-            HttpContext.Response.Cookies.Append(AccessTokenCookie, accessToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                Expires = DateTimeOffset.UtcNow.AddHours(1)
-            });
-            
-            HttpContext.Response.Cookies.Append(RefreshTokenCookie, refreshToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                Expires = DateTimeOffset.UtcNow.AddDays(30)
-            });
+            var (accessToken,refreshToken) = await _tokenService.CreateAuthTokens(existingUser.Value);
+            SetAuthCookies(accessToken, refreshToken);
         }
+            
+        return Redirect("http://localhost:5173");
+    }
+
+    [Authorize]
+    [HttpGet("logout")]
+    public async Task<NoContent> Logout()
+    {
+        HttpContext.Response.Cookies.Delete(AccessTokenCookie);
+        HttpContext.Response.Cookies.Delete(RefreshTokenCookie);
+
+        var tokenJtiClaim = HttpContext.User.Claims
+            .FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)!;
+
+        if (Guid.TryParse(tokenJtiClaim.Value, out var jti)) await _tokenService.InvalidateRefreshTokenByJtiAsync(jti);
+        return TypedResults.NoContent();
+    }
+
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(string),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Refresh()
+    {
+        var refreshTokenCookie = HttpContext.Request.Cookies[RefreshTokenCookie];
+        if (string.IsNullOrEmpty(refreshTokenCookie))
+            return Problem("Missing refresh token.", statusCode: StatusCodes.Status401Unauthorized);
+
+        var tokenValidation = await _tokenService.ValidateToken(refreshTokenCookie);
+        if (!tokenValidation.IsValid)
+        {
+            HttpContext.Response.Cookies.Delete(RefreshTokenCookie);
+            return Problem("Invalid refresh token.", statusCode: StatusCodes.Status401Unauthorized);
+        }
+
+        var tokenJtiClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+        if (tokenJtiClaim is null || !Guid.TryParse(tokenJtiClaim, out var tokenJti))
+            return Problem("Invalid refresh token.", statusCode: StatusCodes.Status401Unauthorized);
+
+        await _tokenService.InvalidateRefreshTokenByJtiAsync(tokenJti);
+
+        var userIdClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+            return Problem("Invalid refresh token.", statusCode: StatusCodes.Status401Unauthorized);
+
+        var user = await _userService.GetByIdAsync(userId);
+        if (user.IsFailed)
+            return Problem("Invalid refresh token.", statusCode: StatusCodes.Status401Unauthorized);
+
+        var (accessToken, refreshToken) = await _tokenService.CreateAuthTokens(user.Value);
+        SetAuthCookies(accessToken, refreshToken);
+
+        return Ok(new { message = "Tokens refreshed successfully" });
+    }
+        
+    private void SetAuthCookies(string accessToken, string refreshToken )
+    {
+        HttpContext.Response.Cookies.Append(AccessTokenCookie, accessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Expires = DateTimeOffset.UtcNow.AddHours(1)
+        });
+            
+        HttpContext.Response.Cookies.Append(RefreshTokenCookie, refreshToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Expires = DateTimeOffset.UtcNow.AddDays(30)
+        });
     }
 }

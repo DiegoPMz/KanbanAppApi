@@ -1,19 +1,17 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace KanbanAppApi.Models
+namespace KanbanAppApi.Models;
+
+[Table("tokens")]
+public class TokenEntity
 {
-    [Table("tokens")]
-    public class TokenEntity
+    public Guid Jti { get; init; }
+    public Guid UserId { get; init; }
+    
+    public TokenEntity() { }
+    public TokenEntity(Guid jti, Guid userId)
     {
-        public TokenEntity(Guid jti, Guid userId)
-        {
-            Jti = jti;
-            UserId = userId;
-        }
-
-        public TokenEntity() { }
-
-        public Guid Jti { get; set; }
-        public Guid UserId { get; set; }
+        Jti = jti;
+        UserId = userId;
     }
 }

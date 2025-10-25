@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace KanbanAppApi.Filters
 {
@@ -8,7 +8,7 @@ namespace KanbanAppApi.Filters
     {
         public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
         {
-            var claimId = context.HttpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            var claimId = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(claimId) || !Guid.TryParse(claimId, out var userId))
             {
                 context.Result = new UnauthorizedResult();
