@@ -2,7 +2,7 @@
 
 namespace KanbanAppApi.Dtos;
 
-public record CreateBoardRequest(
+public record CreateBoardColumnRequest(
     [Required][MinLength(1)] string Name,
-    [Required][MinLength(1)] List<CreateBoardColumnRequest> Columns
+    [Required][MinLength(1)] string Color
 );

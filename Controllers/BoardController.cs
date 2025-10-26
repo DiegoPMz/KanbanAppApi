@@ -1,67 +1,92 @@
 ﻿using KanbanAppApi.Dtos;
+using KanbanAppApi.Errors;
 using KanbanAppApi.Filters;
 using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace KanbanAppApi.Controllers
+namespace KanbanAppApi.Controllers;
+
+[Authorize]
+[RequireUserId]
+[ApiController]
+[Route("api/boards")]
+public class BoardController : ControllerBase
 {
-    [Authorize]
-    [RequireUserId]
-    [ApiController]
-    [Route("api/board")]
-    public class BoardController : ControllerBase
+    private readonly IBoardService _boardService;
+    
+    public BoardController(IBoardService boardService) => _boardService = boardService;
+
+    [HttpGet("{boardId:int}")]
+    [ProducesResponseType(typeof(BoardDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetBoard(int boardId)
     {
-        private readonly IBoardService _boardService;
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var boardResult = await _boardService.GetByIdAsync(userId, boardId);
+        return boardResult.IsSuccess
+            ? Ok(boardResult.Value)
+            : Problem(
+                title: boardResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: boardResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+    }
+    
+    [HttpPost]
+    [ProducesResponseType(typeof(BoardDto),StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails),StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateBoard([FromBody] CreateBoardRequest requestBoard )
+    {
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var createBoardResult = await _boardService.CreateAsync(userId, requestBoard);
 
-        public BoardController(IBoardService boardService)
-        {
-            _boardService = boardService;
-        }
+        return createBoardResult.IsSuccess
+            ? CreatedAtAction(
+                nameof(GetBoard), 
+                new { boardId  = createBoardResult.Value.Id }, 
+                createBoardResult.Value
+            )
+            : Problem(
+                title: createBoardResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: createBoardResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+    }
 
-        [HttpGet("{boardId}")]
-        public async Task<IResult> GetBoard([FromRoute] int boardId)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var response = await _boardService.GetBoardAsync(userId, boardId);
+    [HttpPut]
+    [ProducesResponseType(typeof(UpdateBoardResponseDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails),StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateBoard([FromBody] UpdateBoardRequest requestBoard)
+    {
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var updateBoardResult = await _boardService.UpdateAsync(userId, requestBoard);
 
-            return response.Succeeded
-                 ? TypedResults.Ok(response)
-                 : TypedResults.BadRequest(response);
-        }
+        return updateBoardResult.IsSuccess
+            ? Ok(updateBoardResult.Value)
+            : Problem(
+                title: updateBoardResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: updateBoardResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+    }
 
-        [HttpPost]
-        public async Task<IResult> CreateBoard([FromBody] CreateBoardRequest requestBoard )
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var response = await _boardService.CreateBoardAsync(userId, requestBoard);
+    [HttpDelete("{boardId:int}")]
+    [ProducesResponseType(typeof(string),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteBoard(int boardId)
+    {
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var deleteBoardResult = await _boardService.DeleteAsync(userId, boardId);
 
-             return response.Succeeded
-                 ? TypedResults.Ok(response)
-                 : TypedResults.BadRequest(response);
-        }
-
-        [HttpPut]
-        public async Task<IResult> UpdateBoard([FromBody] UpdateBoardRequest requestBoard)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var response = await _boardService.UpdateBoardNameAsync(userId, requestBoard);
-
-            return response.Succeeded
-                 ? TypedResults.Ok(response)
-                 : TypedResults.BadRequest(response);
-        }
-
-        [HttpDelete("{boardId}")]
-        public async Task<IResult> DeleteBoard([FromRoute] int boardId)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var response = await _boardService.DeleteBoardAsync(userId, boardId);
-
-            return response.Succeeded 
-                ? TypedResults.Ok(response) 
-                : TypedResults.BadRequest(response);
-        }
-
+        return deleteBoardResult.IsSuccess 
+            ? Ok(deleteBoardResult.Value) 
+            : Problem(
+                title: deleteBoardResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: deleteBoardResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
     }
 }

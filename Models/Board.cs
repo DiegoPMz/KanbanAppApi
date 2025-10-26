@@ -1,22 +1,22 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace KanbanAppApi.Models
+namespace KanbanAppApi.Models;
+
+[Table("boards")]
+public class Board
 {
-    [Table("boards")]
-    public class Board
+    public int Id { get; init; }
+    
+    [Column(TypeName = "nvarchar(200)")]
+    public string Name { get; set; }
+    public List<Column> Columns { get; } = [];
+
+    public Guid UserId { get; init; }
+    public User User { get; init; } = null!;
+
+    public Board(string name, Guid userId)
     {
-        public int Id { get; set; }
-        public string Name { get; set; }
-        public List<Column> Columns { get; } = [];
-
-        public Guid UserId { get; set; }
-        public User User { get; set; } = null!;
-
-        public Board() { }
-        public Board(string name, Guid userId)
-        {
-            Name = name;
-            UserId = userId;
-        }
+        Name = name;
+        UserId = userId;
     }
 }

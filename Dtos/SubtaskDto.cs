@@ -1,9 +1,18 @@
-﻿namespace KanbanAppApi.Dtos
+﻿using KanbanAppApi.Models;
+
+namespace KanbanAppApi.Dtos;
+
+public class SubtaskDto
 {
-    public class SubtaskDto
+    public int Id { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public bool IsCompleted { get; set; }
+        
+    public SubtaskDto() { }
+    public SubtaskDto(SubTask subTask)
     {
-        public int Id { get; set; }
-        public string Description { get; set; } = string.Empty;
-        public bool IsCompleted { get; set; }
+        Id = subTask.Id;
+        Description = subTask.Description;
+        IsCompleted = subTask.IsCompleted;
     }
 }
