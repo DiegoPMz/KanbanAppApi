@@ -1,14 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace KanbanAppApi.Models
+namespace KanbanAppApi.Models;
+
+[Table("users")]
+public class User
 {
-    [Table("users")]
-    public class User
+    public Guid Id { get; init; }
+        
+    [Column(TypeName = "nvarchar(60)")]
+    public string Sub { get; init; }
+        
+    [Column(TypeName = "nvarchar(255)")]
+    public string Email { get; init; }
+        
+    [Column(TypeName = "nvarchar(80)")]
+    public string AppTheme { get; set; } = "light";
+        
+    public User(string sub, string email)
     {
-        public Guid Id { get; set; }
-        public string Sub { get; set; }
-        public string Email { get; set; }
-        public string AppTheme { get; set; }
-        public List<Board> Boards { get; } = [];
+        Sub = sub;
+        Email = email;
     }
 }

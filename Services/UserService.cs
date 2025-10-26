@@ -1,68 +1,46 @@
-﻿using KanbanAppApi.Dtos;
+﻿using FluentResults;
+using KanbanAppApi.Errors;
 using KanbanAppApi.Models;
 using KanbanAppApi.Repositories;
-using KanbanAppApi.Responses;
 
-namespace KanbanAppApi.Services
+namespace KanbanAppApi.Services;
+
+public class UserService : IUserService
 {
-    public class UserService : IUserService
+    private readonly IUserRepository _userRepository;
+
+    public UserService(IUserRepository userRepository) =>  _userRepository = userRepository;
+    
+    public async Task<Result<User>> CreateFromSubAsync(string sub, string email)
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IBoardRepository _boardRepository;
+        var user = await _userRepository.CreateAsync(new User(sub, email));
+        return user;
+    }
+        
+    public async Task<Result<User>> GetBySubAsync(string sub)
+    {
+        var user = await _userRepository.GetBySubAsync(sub);
+        return user is null
+            ? UserErrors.NotFoundBySub(sub)
+            : user;                         
+    }
+    
+    public async Task<Result<User>> GetByIdAsync(Guid userId)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        return user is null
+            ? UserErrors.NotFound(userId)
+            : user;    
+    }
 
-        public UserService(IUserRepository userRepository, IBoardRepository boardRepository )
-        {
-            _userRepository= userRepository;
-            _boardRepository = boardRepository;
-        }
+    public async Task<Result<string>> UpdateTheme(Guid userId, string theme)
+    {
+        var userDb = await _userRepository.GetByIdAsync(userId);
+        if (userDb is null) return UserErrors.NotFound(userId);
 
-        public async Task<User?> CreateUserFromSubAsync(string sub, string email)
-        {
-            User newUser = new()
-            {
-                Email = email,
-                Sub = sub,
-                AppTheme = "Light"
-            };
+        userDb.AppTheme = theme;
+        await _userRepository.UpdateAsync(userDb);
 
-            return await _userRepository.CreateUserAsync(newUser);
-        }
-
-        public async Task<ApiResponse<UserProfileDto?>> GetUserBoardSummariesByIdAsync(Guid userId)
-        {
-            User? userDb = await _userRepository.GetUserByIdAsync(userId);
-            if (userDb is null) return ApiResponse<UserProfileDto?>.Failure("The user Id is invalid", []);
-
-            IEnumerable<BoardSummaryDto> userBoards = await _boardRepository.GetBoardSummariesByUserIdAsync(userId) ?? [];
-            var responseData = new UserProfileDto(
-                userDb.Id,
-                userDb.Email,
-                userDb.AppTheme,
-                userBoards.ToList()
-            );
-
-            return ApiResponse<UserProfileDto?>.Success(responseData,"Operation successfuly");
-        }
-
-        public async Task<User?> GetUserBySubAsync(string sub)
-        {
-            return await _userRepository.GetUserBySubAsync(sub);
-        }
-
-        public Task<User?> GetUserDetailsByIdAsync(Guid userId)
-        {
-            return _userRepository.GetUserByIdAsync(userId);
-        }
-
-        public async Task<ApiResponse<object?>> UpdateAppTheme(Guid userId, string theme)
-        {
-            var userDb = await _userRepository.GetUserByIdAsync(userId);
-            if (userDb is null) return ApiResponse<object?>.Failure("User not found", []);
-
-            userDb.AppTheme = theme;
-            await _userRepository.UpdateUserAsync(userDb);
-
-            return ApiResponse<object?>.Success(null, "Application theme updated successfully");
-        }
+        return "Application theme updated successfully";
     }
 }

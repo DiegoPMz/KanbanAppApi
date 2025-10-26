@@ -1,15 +1,12 @@
-﻿using KanbanAppApi.Dtos;
+﻿using FluentResults;
 using KanbanAppApi.Models;
-using KanbanAppApi.Responses;
 
-namespace KanbanAppApi.Services
+namespace KanbanAppApi.Services;
+
+public interface IUserService
 {
-    public interface IUserService
-    {
-        Task<User?> CreateUserFromSubAsync(string sub,string email);
-        Task<User?> GetUserBySubAsync(string sub);
-        Task<ApiResponse<UserProfileDto?>> GetUserBoardSummariesByIdAsync(Guid userId);
-        Task<ApiResponse<object?>> UpdateAppTheme(Guid userId, string theme);
-        Task<User?> GetUserDetailsByIdAsync(Guid userId);
-    }
+    Task<Result<User>> CreateFromSubAsync(string sub,string email);
+    Task<Result<User>> GetBySubAsync(string sub);
+    Task<Result<User>> GetByIdAsync(Guid userId);
+    Task<Result<string>> UpdateTheme(Guid userId, string theme);
 }

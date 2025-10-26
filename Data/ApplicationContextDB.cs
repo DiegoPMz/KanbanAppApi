@@ -21,6 +21,10 @@ namespace KanbanAppApi.Data
                 entity.Property(t => t.Jti)
                     .ValueGeneratedNever();
             });
+            
+            modelBuilder.Entity<User>()
+                .HasIndex(u => new { u.Sub, u.Id })
+                .IsUnique();
 
             base.OnModelCreating(modelBuilder);
         }
