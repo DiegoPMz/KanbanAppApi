@@ -1,17 +1,15 @@
-﻿using KanbanAppApi.Dtos;
-using KanbanAppApi.Models;
+﻿using KanbanAppApi.Models;
 
-namespace KanbanAppApi.Repositories
+namespace KanbanAppApi.Repositories;
+
+public interface IColumnRepository
 {
-    public interface IColumnRepository
-    {
-        Task<Column?> CreateColumnAsync(Column column);
-        Task<IEnumerable<Column>> GetColumnsByBoardIdAsync(int boardId);
-        Task<Column?> GetColumnByIdAsync(int columnId);
-        Task<List<ColumnDto>> GetColumnsWithBoardTasksAndSubtasksAsync(int columnId);
-        Task<Column?> UpdateColumnAsync(Column column);
-        Task DeleteColumnAsync(Column column);
-        Task UpdateColumnsPositionsAsync(List<Column> columns);
-        Task<Boolean> ColumnExistsForUserAsync(Guid userId ,int columnId);
-    }
+    Task<Column> CreateAsync(Column column);
+    Task<List<Column>> GetAllByBoardIdAsync(int boardId);
+    Task<Column?> GetByIdAsync(int columnId);
+    Task<List<Column>> GetAllWithBoardTasksAndSubtasksAsync(int columnId);
+    Task<Column> UpdateAsync(Column column);
+    Task DeleteAsync(Column column);
+    Task UpdatePositionsAsync(List<Column> columns);
+    Task<bool> ExistsForUserAsync(Guid userId ,int columnId);
 }

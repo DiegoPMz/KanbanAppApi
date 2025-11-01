@@ -1,91 +1,89 @@
 ﻿using KanbanAppApi.Dtos;
+using KanbanAppApi.Errors;
 using KanbanAppApi.Filters;
-using KanbanAppApi.Responses;
 using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
-namespace KanbanAppApi.Controllers { 
-    [Authorize]
-    [RequireUserId]
-    [ApiController]
-    [Route("api/column")]
-    public class ColumnController : ControllerBase
+namespace KanbanAppApi.Controllers;
+
+[Authorize]
+[RequireUserId]
+[ApiController]
+[Route("api/columns")]
+public class ColumnController : ControllerBase
+{
+    private readonly IColumnService _columnService;
+    public ColumnController(IColumnService columnService) => _columnService = columnService;
+
+    [HttpPost]
+    [ProducesResponseType(typeof(ColumnDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails),StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateColumn([FromBody] CreateColumnRequestDto requestColumn)
     {
-        private readonly IColumnService _columnService;
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var createdColumnResult = await _columnService.CreateAsync(userId,requestColumn);
 
-        public ColumnController(IColumnService columnService)
-        {
-            _columnService = columnService;
-        }
+        return createdColumnResult.IsSuccess
+            ? Ok(createdColumnResult.Value)
+            : Problem(
+                title: createdColumnResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: createdColumnResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+    }
+    
+    [HttpDelete("{columnId:int}")]
+    [ProducesResponseType(typeof(string),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteColumn([FromRoute] int columnId)
+    {
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var deletedColumnResult = await _columnService.DeleteAsync(userId, columnId);
 
-        [HttpPost]
-        public async Task<
-            Results<
-                Ok<ApiResponse<ColumnDto?>>,
-                BadRequest<ApiResponse<ColumnDto?>>
-                >
-            > 
-            CreateColumn([FromBody] CreateColumnRequestDto requestColumn)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var createdColumnService = await _columnService.CreateColumnAsync(userId,requestColumn);
+        return deletedColumnResult.IsSuccess 
+            ? Ok(deletedColumnResult.Value)
+            : Problem(
+                title: deletedColumnResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: deletedColumnResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+    }
 
-            return createdColumnService.Succeeded 
-                ? TypedResults.Ok(createdColumnService)
-                : TypedResults.BadRequest(createdColumnService);
-        }
+    [HttpPut]
+    [ProducesResponseType(typeof(UpdateColumnResponseDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails),StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateColumn([FromBody] UpdateColumnRequestDto requestColumn)
+    {
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var updatedColumnResult = await _columnService.UpdateAsync(userId, requestColumn);
 
-        [HttpDelete("{columnId}")]
-        public async Task<
-            Results<
-                Ok<ApiResponse<object?>>,
-                BadRequest<ApiResponse<object?>>
-                >
-            > 
-            DeleteColumn([FromRoute] int columnId)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var deletedColumnService = await _columnService.DeleteColumnAsync(userId, columnId);
+        return updatedColumnResult.IsSuccess 
+            ? Ok(updatedColumnResult.Value)
+            : Problem(
+                title: updatedColumnResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: updatedColumnResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+    }
 
-            return deletedColumnService.Succeeded 
-                ? TypedResults.Ok(deletedColumnService)
-                : TypedResults.BadRequest(deletedColumnService);
-        }
+    [HttpPut("reorder")]
+    [ProducesResponseType(typeof(List<ColumnPositionDto>),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails),StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ReorderColumns([FromBody] ReorderColumnRequestDto requestColumn)
+    {
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var reorderedColumnsResult = await _columnService.ReorderColumnsAsync(userId, requestColumn);
 
-        [HttpPut]
-        public async Task<
-            Results<
-                Ok<ApiResponse<ColumnDto?>>,
-                BadRequest<ApiResponse<ColumnDto?>>
-                >
-            >
-            UpdateColumn([FromBody] UpdateColumnRequestDto requestColumn)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var updatedColumnService = await _columnService.UpdateColumnAsync(userId, requestColumn);
-
-            return updatedColumnService.Succeeded 
-                ? TypedResults.Ok(updatedColumnService)
-                : TypedResults.BadRequest(updatedColumnService);
-        }
-
-        [HttpPut("reorder")]
-        public async Task<
-            Results<
-                Ok<ApiResponse<List<ColumnPositionDto>?>>,
-                BadRequest<ApiResponse<List<ColumnPositionDto>?>>
-                >
-            > 
-            ReorderColumns([FromBody] ReorderColumnRequestDto requestColumn)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var reorderedColumnsService = await _columnService.ReorderColumnsAsync(userId, requestColumn);
-
-            return reorderedColumnsService.Succeeded 
-                ? TypedResults.Ok(reorderedColumnsService)
-                : TypedResults.BadRequest(reorderedColumnsService);
-        }
+        return reorderedColumnsResult.IsSuccess 
+            ? Ok(reorderedColumnsResult.Value)
+            : Problem(
+                title: reorderedColumnsResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: reorderedColumnsResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
     }
 }

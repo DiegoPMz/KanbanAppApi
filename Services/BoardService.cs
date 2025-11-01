@@ -22,7 +22,7 @@ public class BoardService : IBoardService
         var boardDb = await _boardRepository.GetByIdAsync(boardId);
         if (boardDb is null || boardDb.UserId != userId) return BoardErrors.NotFound(boardId.ToString());
         
-        var columns = await _columnRepository.GetColumnsWithBoardTasksAndSubtasksAsync(boardId);
+        var columns = await _columnRepository.GetAllWithBoardTasksAndSubtasksAsync(boardId);
         return new BoardDto()
         {
             Id = boardId,
@@ -42,7 +42,7 @@ public class BoardService : IBoardService
         }).ToList().ForEach(c => newBoard.Columns.Add(c));
 
         var createdBoard = await _boardRepository.CreateAsync(newBoard);
-        var createdColumns = await _columnRepository.GetColumnsByBoardIdAsync(createdBoard.Id);
+        var createdColumns = await _columnRepository.GetAllByBoardIdAsync(createdBoard.Id);
 
         return new BoardDto 
         {  

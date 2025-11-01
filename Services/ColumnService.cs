@@ -1,150 +1,110 @@
-﻿using KanbanAppApi.Dtos;
+﻿using System.Text.Json;
+using KanbanAppApi.Dtos;
+using KanbanAppApi.Errors;
 using KanbanAppApi.Models;
 using KanbanAppApi.Repositories;
-using KanbanAppApi.Responses;
+using FluentResults;
 
-namespace KanbanAppApi.Services
+namespace KanbanAppApi.Services;
+
+public class ColumnService : IColumnService
 {
-    public class ColumnService : IColumnService
+    private readonly IColumnRepository _columnRepository;
+    private readonly IBoardRepository _boardRepository;
+
+    public ColumnService(IColumnRepository columnRepository, IBoardRepository boardRepository)
     {
-        private readonly IColumnRepository _columnRepository;
-        private readonly IBoardRepository _boardRepository;
+        _columnRepository = columnRepository;
+        _boardRepository = boardRepository;
+    }
 
-        public ColumnService(IColumnRepository columnRepository, IBoardRepository boardRepository)
+    public async Task<Result<ColumnDto>> CreateAsync(Guid userId, CreateColumnRequestDto columnRequest)
+    {
+        if (!await _boardRepository.ExistsForUserAsync(userId, columnRequest.BoardId)) 
+            return BoardErrors.NotFound(columnRequest.BoardId.ToString());
+
+        Column newColumn = new()
         {
-            _columnRepository = columnRepository;
-            _boardRepository = boardRepository;
-        }
+            BoardId = columnRequest.BoardId,
+            Name = columnRequest.Name,
+            Color = columnRequest.Color,
+        };
 
-        public async Task<ApiResponse<ColumnDto?>> CreateColumnAsync(Guid userId, CreateColumnRequestDto columnRequest)
+        var columnsDb = await _columnRepository.GetAllByBoardIdAsync(columnRequest.BoardId);
+        newColumn.Position = columnsDb.Count + 1;
+
+        var createdColumn = await _columnRepository.CreateAsync(newColumn);
+        Console.WriteLine(JsonSerializer.Serialize(createdColumn));
+        return new ColumnDto(createdColumn);
+    }
+
+    public async Task<Result<string>> DeleteAsync(Guid userId, int columnId)
+    {
+        if (!await _columnRepository.ExistsForUserAsync(userId, columnId)) 
+            return ColumnErrors.NotFound(columnId.ToString());
+
+        var column = await _columnRepository.GetByIdAsync(columnId);
+        await _columnRepository.DeleteAsync(column!);
+        return "Column deleted successfully";
+    }
+
+    public async Task<Result<UpdateColumnResponseDto>> UpdateAsync(Guid userId, UpdateColumnRequestDto columnRequest)
+    {
+        if (!await _columnRepository.ExistsForUserAsync(userId, columnRequest.Id))
+            return ColumnErrors.NotFound(columnRequest.Id.ToString());
+
+        var columnDb = await _columnRepository.GetByIdAsync(columnRequest.Id)!;
+        if (columnDb is null || columnDb.BoardId != columnRequest.BoardId) return ColumnErrors.NotFound(columnRequest.Id.ToString());
+
+        columnDb.Name = columnRequest.Name ?? columnDb.Name;
+        columnDb.Color = columnRequest.Color ?? columnDb.Color;
+
+        await _columnRepository.UpdateAsync(columnDb);
+        return new UpdateColumnResponseDto(columnDb.Name,  columnDb.Color);
+    }
+
+    public async Task<Result<List<ColumnPositionDto>>> ReorderColumnsAsync(Guid userId, ReorderColumnRequestDto reorderRequest)
+    {
+        if (!await _columnRepository.ExistsForUserAsync(userId, reorderRequest.Id))
+            return ColumnErrors.NotFound(reorderRequest.Id.ToString());
+
+        var currentColumn = await _columnRepository.GetByIdAsync(reorderRequest.Id);
+        if (currentColumn is null || currentColumn.BoardId != reorderRequest.BoardId)
+            return ColumnErrors.NotFound(reorderRequest.Id.ToString());
+
+        var columnsDb = await _columnRepository.GetAllByBoardIdAsync(reorderRequest.BoardId);
+        if (reorderRequest.Position < 1 || reorderRequest.Position > columnsDb.Count)
+            return ColumnErrors.InvalidPosition(columnsDb.Count);
+        
+        if (currentColumn.Position == reorderRequest.Position) return columnsDb
+            .Select(c => new ColumnPositionDto { Id = c.Id, Position = c.Position })
+            .ToList();
+        
+        List<Column> reorderedColumns = [];
+        var index = 1;
+        
+        foreach (var c in columnsDb.Where(c => c.Id != reorderRequest.Id))
         {
-            if (!await _boardRepository.BoardExistsForUserAsync(userId, columnRequest.BoardId))
+            if (index == reorderRequest.Position)
             {
-                return ApiResponse<ColumnDto?>.Failure("Board not found", []);
-            }
-
-            var column = new Column
-            {
-                BoardId = columnRequest.BoardId,
-                Name = columnRequest.Name,
-                Color = columnRequest.Color,
-            };
-
-            IEnumerable<Column> columnsDb = await _columnRepository.GetColumnsByBoardIdAsync(columnRequest.BoardId);
-            column.Position = columnsDb.Count() + 1;
-
-            Column? createdColumn = await _columnRepository.CreateColumnAsync(column);
-            if (createdColumn is null) return ApiResponse<ColumnDto?>.Failure("Failed to create column", []);
-
-            var columnResult = new ColumnDto
-            {
-                Id = createdColumn.Id,
-                Name = createdColumn.Name,
-                Position = createdColumn.Position,
-                Color = createdColumn.Color,
-                Tasks = []
-            };
-
-            return ApiResponse<ColumnDto?>.Success(columnResult, "Column created successfully");
-        }
-
-        public async Task<ApiResponse<object?>> DeleteColumnAsync(Guid userId, int columnId)
-        {
-            if (!await _columnRepository.ColumnExistsForUserAsync(userId, columnId))
-            {
-                return ApiResponse<object?>.Failure("Column not found", []);
-            }
-
-            var column = await _columnRepository.GetColumnByIdAsync(columnId);
-            if (column is null) return ApiResponse<object?>.Failure("Column not found", []);
-
-            await _columnRepository.DeleteColumnAsync(column);
-            return ApiResponse<object?>.Success(null, "Column deleted successfully");
-        }
-
-        public async Task<ApiResponse<ColumnDto?>> UpdateColumnAsync(Guid userId, UpdateColumnRequestDto columnRequest)
-        {
-            if (!await _columnRepository.ColumnExistsForUserAsync(userId, columnRequest.Id))
-            {
-                return ApiResponse<ColumnDto?>.Failure("Column not found", []);
-            }
-
-            var columnDb = await _columnRepository.GetColumnByIdAsync(columnRequest.Id)!;
-            if (columnDb is null || columnDb.BoardId != columnRequest.BoardId) return ApiResponse<ColumnDto?>.Failure("Column not found", []);
-
-            columnDb.Name = columnRequest.Name ?? columnDb.Name;
-            columnDb.Color = columnRequest.Color ?? columnDb.Color;
-
-            return ApiResponse<ColumnDto?>.Success(new ColumnDto
-            {
-                Id = columnDb.Id,
-                Name = columnDb.Name,
-                Position = columnDb.Position,
-                Color = columnDb.Color,
-                Tasks = []
-            }, "Column updated successfully");
-        }
-
-        public async Task<ApiResponse<List<ColumnPositionDto>?>> ReorderColumnsAsync(Guid userId, ReorderColumnRequestDto reorderRequest)
-        {
-            if (!await _columnRepository.ColumnExistsForUserAsync(userId, reorderRequest.Id))
-            {
-                return ApiResponse<List<ColumnPositionDto>?>.Failure("Column not found", []);
-            }
-
-            var currentColumn = await _columnRepository.GetColumnByIdAsync(reorderRequest.Id);
-            if (currentColumn is null || currentColumn.BoardId != reorderRequest.BoardId)
-            {
-                return ApiResponse<List<ColumnPositionDto>?>.Failure("Column not found", []);
-            }
-
-            IEnumerable<Column> columnsDb = await _columnRepository.GetColumnsByBoardIdAsync(reorderRequest.BoardId);
-
-            if (reorderRequest.Position < 1 || reorderRequest.Position > columnsDb.Count())
-            {
-                return ApiResponse<List<ColumnPositionDto>?>.Failure(
-                    $"Invalid position. Allowed range is from 1 to {columnsDb.Count()}",
-                    []
-                );
-            }
-
-            if (currentColumn.Position == reorderRequest.Position)
-            {
-                var noChangeResult = columnsDb
-                    .Select(c => new ColumnPositionDto { Id = c.Id, Position = c.Position })
-                    .ToList();
-
-                return ApiResponse<List<ColumnPositionDto>?>.Success(noChangeResult, "No reordering needed");
-            }
-
-            List<Column> reorderedColumns = new();
-            int index = 1;
-
-            foreach (var c in columnsDb.Where(c => c.Id != reorderRequest.Id))
-            {
-                if (index == reorderRequest.Position)
-                {
-                    currentColumn.Position = reorderRequest.Position;
-                    reorderedColumns.Add(currentColumn);
-                    index++;
-                }
-
-                c.Position = index++;
-                reorderedColumns.Add(c);
-            }
-
-            if (!reorderedColumns.Contains(currentColumn))
-            {
-                currentColumn.Position = index;
+                currentColumn.Position = reorderRequest.Position;
                 reorderedColumns.Add(currentColumn);
+                index++;
             }
 
-            await _columnRepository.UpdateColumnsPositionsAsync(reorderedColumns);
-            List<ColumnPositionDto> result = reorderedColumns
-                .Select(c => new ColumnPositionDto { Id = c.Id, Position = c.Position })
-                .ToList();
-
-            return ApiResponse<List<ColumnPositionDto>?>.Success(result, "Columns reordered successfully");
+            c.Position = index++;
+            reorderedColumns.Add(c);
         }
+
+        if (!reorderedColumns.Contains(currentColumn))
+        {
+            currentColumn.Position = index;
+            reorderedColumns.Add(currentColumn);
+        }
+
+        await _columnRepository.UpdatePositionsAsync(reorderedColumns);
+        return reorderedColumns
+            .Select(c => new ColumnPositionDto { Id = c.Id, Position = c.Position })
+            .ToList();
     }
 }
