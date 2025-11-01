@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace KanbanAppApi.Migrations
 {
-    [DbContext(typeof(ApplicationContextDB))]
+    [DbContext(typeof(ApplicationContextDb))]
     partial class ApplicationContextDBModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
@@ -32,7 +32,7 @@ namespace KanbanAppApi.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -151,17 +151,20 @@ namespace KanbanAppApi.Migrations
 
                     b.Property<string>("AppTheme")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("Sub")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(60)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Sub", "Id")
+                        .IsUnique();
 
                     b.ToTable("users");
                 });
@@ -169,7 +172,7 @@ namespace KanbanAppApi.Migrations
             modelBuilder.Entity("KanbanAppApi.Models.Board", b =>
                 {
                     b.HasOne("KanbanAppApi.Models.User", "User")
-                        .WithMany("Boards")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -223,11 +226,6 @@ namespace KanbanAppApi.Migrations
             modelBuilder.Entity("KanbanAppApi.Models.Column", b =>
                 {
                     b.Navigation("BoardTask");
-                });
-
-            modelBuilder.Entity("KanbanAppApi.Models.User", b =>
-                {
-                    b.Navigation("Boards");
                 });
 #pragma warning restore 612, 618
         }

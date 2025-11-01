@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace KanbanAppApi.Migrations
 {
-    [DbContext(typeof(ApplicationContextDB))]
+    [DbContext(typeof(ApplicationContextDb))]
     [Migration("20251002213057_AddTokenEntity")]
     partial class AddTokenEntity
     {

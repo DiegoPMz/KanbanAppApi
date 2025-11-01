@@ -14,7 +14,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<ApplicationContextDB>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContext<ApplicationContextDb>(options => options.UseSqlServer(connectionString));
 
 // Add services to the container.
 builder.Services.AddProblemDetails(options =>

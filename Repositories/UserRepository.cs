@@ -6,9 +6,9 @@ namespace KanbanAppApi.Repositories;
 
 public class UserRepository : IUserRepository
 {
-    private readonly ApplicationContextDB _context;
+    private readonly ApplicationContextDb _context;
 
-    public UserRepository(ApplicationContextDB context)
+    public UserRepository(ApplicationContextDb context)
     {
         _context = context;
     }

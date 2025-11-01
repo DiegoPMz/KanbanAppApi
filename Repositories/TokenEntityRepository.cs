@@ -6,9 +6,9 @@ namespace KanbanAppApi.Repositories;
 
 public class TokenEntityRepository : ITokenEntityRepository
 {
-    private readonly ApplicationContextDB _context;
+    private readonly ApplicationContextDb _context;
 
-    public TokenEntityRepository(ApplicationContextDB context)
+    public TokenEntityRepository(ApplicationContextDb context)
     {
         _context = context;
     }

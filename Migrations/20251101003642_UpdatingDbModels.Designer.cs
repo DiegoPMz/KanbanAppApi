@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KanbanAppApi.Migrations
 {
     [DbContext(typeof(ApplicationContextDb))]
-    [Migration("20250925044153_AddColumnColor")]
-    partial class AddColumnColor
+    [Migration("20251101003642_UpdatingDbModels")]
+    partial class UpdatingDbModels
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -35,7 +35,7 @@ namespace KanbanAppApi.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -133,6 +133,19 @@ namespace KanbanAppApi.Migrations
                     b.ToTable("subTasks");
                 });
 
+            modelBuilder.Entity("KanbanAppApi.Models.TokenEntity", b =>
+                {
+                    b.Property<Guid>("Jti")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Jti");
+
+                    b.ToTable("tokens");
+                });
+
             modelBuilder.Entity("KanbanAppApi.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -141,17 +154,20 @@ namespace KanbanAppApi.Migrations
 
                     b.Property<string>("AppTheme")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("Sub")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(60)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Sub", "Id")
+                        .IsUnique();
 
                     b.ToTable("users");
                 });
@@ -159,7 +175,7 @@ namespace KanbanAppApi.Migrations
             modelBuilder.Entity("KanbanAppApi.Models.Board", b =>
                 {
                     b.HasOne("KanbanAppApi.Models.User", "User")
-                        .WithMany("Boards")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -213,11 +229,6 @@ namespace KanbanAppApi.Migrations
             modelBuilder.Entity("KanbanAppApi.Models.Column", b =>
                 {
                     b.Navigation("BoardTask");
-                });
-
-            modelBuilder.Entity("KanbanAppApi.Models.User", b =>
-                {
-                    b.Navigation("Boards");
                 });
 #pragma warning restore 612, 618
         }

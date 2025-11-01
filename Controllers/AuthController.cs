@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
+using KanbanAppApi.Errors;
 
 namespace KanbanAppApi.Controllers;
 
@@ -95,33 +96,24 @@ public class AuthController : ControllerBase
     {
         var refreshTokenCookie = HttpContext.Request.Cookies[RefreshTokenCookie];
         if (string.IsNullOrEmpty(refreshTokenCookie))
-            return Problem("Missing refresh token.", statusCode: StatusCodes.Status401Unauthorized);
-
-        var tokenValidation = await _tokenService.ValidateToken(refreshTokenCookie);
-        if (!tokenValidation.IsValid)
         {
-            HttpContext.Response.Cookies.Delete(RefreshTokenCookie);
-            return Problem("Invalid refresh token.", statusCode: StatusCodes.Status401Unauthorized);
+            var error = AuthErrors.MissingRefreshToken();
+            return Problem(
+                title: error.Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: error.Message,
+                statusCode: StatusCodes.Status401Unauthorized
+            );
         }
-
-        var tokenJtiClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-        if (tokenJtiClaim is null || !Guid.TryParse(tokenJtiClaim, out var tokenJti))
-            return Problem("Invalid refresh token.", statusCode: StatusCodes.Status401Unauthorized);
-
-        await _tokenService.InvalidateRefreshTokenByJtiAsync(tokenJti);
-
-        var userIdClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-        if (!Guid.TryParse(userIdClaim, out var userId))
-            return Problem("Invalid refresh token.", statusCode: StatusCodes.Status401Unauthorized);
-
-        var user = await _userService.GetByIdAsync(userId);
-        if (user.IsFailed)
-            return Problem("Invalid refresh token.", statusCode: StatusCodes.Status401Unauthorized);
-
-        var (accessToken, refreshToken) = await _tokenService.CreateAuthTokens(user.Value);
-        SetAuthCookies(accessToken, refreshToken);
-
-        return Ok(new { message = "Tokens refreshed successfully" });
+        
+        var refreshResult = await _authService.RefreshAsync(refreshTokenCookie);
+        if (refreshResult.IsFailed) return Problem(
+            title: refreshResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+            detail: refreshResult.Errors[0].Message,
+            statusCode: StatusCodes.Status401Unauthorized
+        );
+        
+        SetAuthCookies(refreshResult.Value.AccessToken, refreshResult.Value.RefreshToken);
+        return Ok("Tokens refreshed successfully");
     }
         
     private void SetAuthCookies(string accessToken, string refreshToken )

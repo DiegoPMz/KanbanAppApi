@@ -4,6 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
+using FluentResults;
+using KanbanAppApi.Errors;
 
 namespace KanbanAppApi.Services
 {
@@ -11,14 +13,23 @@ namespace KanbanAppApi.Services
     {
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ITokenService _tokenService;
+        private readonly IUserService  _userService ;
 
         private const string RouteCallback = "https://localhost:7144/api/auth/callback";
         private const string GoogleTokenEndpoint = "https://oauth2.googleapis.com/token";
         private const string GoogleCertsEndpoint = "https://www.googleapis.com/oauth2/v3/certs";
-        public AuthService(IConfiguration configuration, IHttpClientFactory httpClientFactory )
+        public AuthService(
+            IConfiguration configuration, 
+            IHttpClientFactory httpClientFactory, 
+            ITokenService tokenService, 
+            IUserService userService
+            )
         {
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
+            _tokenService = tokenService;
+            _userService = userService;
         }
 
         public async Task<GoogleTokenResponse> ExchangeCodeForTokenAsync(string code, string codeVerifier)
@@ -92,6 +103,26 @@ namespace KanbanAppApi.Services
                 googleQuery
             );
             return (googleUrl, verifier);
+        }
+
+        public async Task<Result<(string AccessToken, string RefreshToken)>> RefreshAsync(string refreshTokenCookie)
+        {
+            var tokenValidation = await _tokenService.ValidateToken(refreshTokenCookie);
+            if (!tokenValidation.IsValid) return AuthErrors.InvalidRefreshToken();
+            
+            var jtiClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+            if (jtiClaim is null || !Guid.TryParse(jtiClaim, out var tokenJti))
+                return AuthErrors.InvalidRefreshToken();
+
+            await _tokenService.InvalidateRefreshTokenByJtiAsync(tokenJti);
+
+            var userIdClaim = tokenValidation.ClaimsIdentity.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId)) return AuthErrors.InvalidRefreshToken();
+
+            var user = await _userService.GetByIdAsync(userId);
+            if (user.IsFailed) return AuthErrors.InvalidRefreshToken();
+
+            return await _tokenService.CreateAuthTokens(user.Value);
         }
 
         private static GoogleIdTokenClaims MapGoogleClaims(ClaimsPrincipal principal) => new()

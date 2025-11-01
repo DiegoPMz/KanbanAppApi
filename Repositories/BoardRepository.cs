@@ -6,9 +6,9 @@ namespace KanbanAppApi.Repositories;
 
 public class BoardRepository : IBoardRepository
 {
-    private readonly ApplicationContextDB _context;
+    private readonly ApplicationContextDb _context;
 
-    public BoardRepository(ApplicationContextDB context) => _context = context;
+    public BoardRepository(ApplicationContextDb context) => _context = context;
 
     public async Task<Board> CreateAsync(Board board)
     {

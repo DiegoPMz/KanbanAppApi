@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace KanbanAppApi.Migrations
 {
-    [DbContext(typeof(ApplicationContextDB))]
+    [DbContext(typeof(ApplicationContextDb))]
     [Migration("20250923080714_InitialCreate")]
     partial class InitialCreate
     {
