@@ -53,4 +53,12 @@ public class BoardTaskRepository : IBoardTaskRepository
         _context.BoardTask.UpdateRange(boardTasks);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<bool> UserOwnsBoardTaskAsync(Guid userId, int boardTaskId)
+    {
+        return await _context.BoardTask
+            .AnyAsync(bt => 
+                bt.Id == boardTaskId && bt.Column.Board.UserId == userId
+            );
+    }
 }

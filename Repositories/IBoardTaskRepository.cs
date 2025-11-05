@@ -11,4 +11,5 @@ public interface IBoardTaskRepository
     Task<BoardTask> UpdateAsync(BoardTask boardTask);
     Task UpdatePositionsAsync(List<BoardTask> boardTasks);
     Task DeleteAsync(BoardTask boardTask);
+    Task<bool> UserOwnsBoardTaskAsync(Guid userId, int boardTaskId);
 }

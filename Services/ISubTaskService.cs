@@ -1,12 +1,12 @@
-﻿using KanbanAppApi.Dtos;
+﻿using FluentResults;
+using KanbanAppApi.Dtos;
 using KanbanAppApi.Responses;
 
-namespace KanbanAppApi.Services
+namespace KanbanAppApi.Services;
+
+public interface ISubTaskService
 {
-    public interface ISubTaskService
-    {
-        Task<ApiResponse<SubtaskDto?>> CreateSubTaskAsync(CreateSubTaskRequestDto subTaskRequest);
-        Task<ApiResponse<SubtaskDto?>> UpdateSubTaskAsync(Guid userId, UpdateSubTaskRequestDto subTaskRequest);
-        Task<ApiResponse<SubtaskDto?>> DeleteSubTaskAsync(Guid userId, int subTaskId);
-    }
+    Task<Result<SubtaskDto>> CreateAsync(Guid userId, CreateSubTaskRequestDto subTaskRequest);
+    Task<Result<UpdateSubTaskResponseDto>> UpdateAsync(Guid userId, UpdateSubTaskRequestDto subTaskRequest);
+    Task<Result<string>> DeleteAsync(Guid userId, int subTaskId);
 }

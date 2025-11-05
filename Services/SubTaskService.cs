@@ -1,91 +1,54 @@
-﻿using KanbanAppApi.Dtos;
+﻿using FluentResults;
+using KanbanAppApi.Dtos;
+using KanbanAppApi.Errors;
 using KanbanAppApi.Models;
 using KanbanAppApi.Repositories;
-using KanbanAppApi.Responses;
 
-namespace KanbanAppApi.Services
+namespace KanbanAppApi.Services;
+
+public class SubTaskService : ISubTaskService
 {
-    public class SubTaskService : ISubTaskService
+    private readonly ISubTaskRepository _subTaskRepository;
+    private readonly IBoardTaskRepository _boardTaskRepository;
+    public SubTaskService(ISubTaskRepository subTaskRepository, IBoardTaskRepository boardTaskRepository)
     {
-        private readonly ISubTaskRepository _subTaskRepository;
+        _subTaskRepository = subTaskRepository;
+        _boardTaskRepository = boardTaskRepository;
+    }
 
-        public SubTaskService(ISubTaskRepository subTaskRepository)
-        {
-            _subTaskRepository = subTaskRepository;
-        }
+    public async Task<Result<SubtaskDto>> CreateAsync(Guid userId, CreateSubTaskRequestDto subTaskRequest)
+    {
+        if (!await _boardTaskRepository.UserOwnsBoardTaskAsync(userId, subTaskRequest.BoardTaskId))
+            BoardTaskErrors.NotFound(subTaskRequest.BoardTaskId.ToString());
+        
+        SubTask newSubtask = new(subTaskRequest.Description, subTaskRequest.BoardTaskId);
+        var createdSubTask = await _subTaskRepository.CreateAsync(newSubtask);
+        return  new SubtaskDto(createdSubTask);
+    }
 
-        public async Task<ApiResponse<SubtaskDto?>> CreateSubTaskAsync(CreateSubTaskRequestDto subTaskRequest)
-        {
-            SubTask newSubtask = new()
-            {
-                Description = subTaskRequest.Description,
-                IsCompleted = false,
-                BoardTaskId = subTaskRequest.TaskId
-            };
+    public async Task<Result<string>> DeleteAsync(Guid userId, int subTaskId)
+    {
+        if (!await _subTaskRepository.UserOwnsSubTaskAsync(userId, subTaskId))
+            return SubtaskErrors.NotFound(subTaskId.ToString());
+        
+        var subTaskDb = await _subTaskRepository.GetByIdAsync(subTaskId);
+        await _subTaskRepository.DeleteAsync(subTaskDb!);
+        return "Subtask deleted successfully.";
+    }
 
-            var createdSubTask = await _subTaskRepository.CreateSubTaskAsync(newSubtask);
-            if (createdSubTask is null)
-            {
-                return ApiResponse<SubtaskDto?>.Failure("Failed to create subtask.", []);
-            }
+    public async Task<Result<UpdateSubTaskResponseDto>> UpdateAsync(Guid userId, UpdateSubTaskRequestDto subTaskRequest)
+    {
+        if (!await _subTaskRepository.UserOwnsSubTaskAsync(userId, subTaskRequest.Id))
+            return SubtaskErrors.NotFound(subTaskRequest.Id.ToString());
 
-            var response = new SubtaskDto
-            {
-                Description = createdSubTask.Description,
-                IsCompleted = createdSubTask.IsCompleted,
-                Id = createdSubTask.Id
-            };
+        var subTaskDb = await _subTaskRepository.GetByIdAsync(subTaskRequest.Id);
+        if (subTaskDb is null || subTaskDb.BoardTaskId != subTaskRequest.boardTaskId ) 
+            return SubtaskErrors.NotFound(subTaskRequest.Id.ToString());
 
-            return ApiResponse<SubtaskDto?>.Success(response, "Subtask created successfully.");
-        }
+        subTaskDb.Description = subTaskRequest.Description ?? subTaskDb.Description;
+        subTaskDb.IsCompleted = subTaskRequest.IsCompleted ?? subTaskDb.IsCompleted;
 
-        public async Task<ApiResponse<SubtaskDto?>> DeleteSubTaskAsync(Guid userId, int subTaskId)
-        {
-            if (!await _subTaskRepository.SubTaskExistsByUserIdAsync(userId,subTaskId))
-            {
-                return ApiResponse<SubtaskDto?>.Failure("Subtask not found or access denied.", []);
-            }
-
-            var subTask = await _subTaskRepository.GetSubTaskByIdAsync(subTaskId);
-            if (subTask is null)
-            {
-                return ApiResponse<SubtaskDto?>.Failure("Subtask not found or access denied.", []);
-            }
-
-            await _subTaskRepository.DeleteSubTask(subTask);
-            return ApiResponse<SubtaskDto?>.Success(null, "Subtask deleted successfully.");
-        }
-
-        public async Task<ApiResponse<SubtaskDto?>> UpdateSubTaskAsync(Guid userId, UpdateSubTaskRequestDto subTaskRequest)
-        {
-            if (!await _subTaskRepository.SubTaskExistsByUserIdAsync(userId, subTaskRequest.Id))
-            {
-                return ApiResponse<SubtaskDto?>.Failure("Subtask not found or access denied.", []);
-            }
-
-            var subTask = await _subTaskRepository.GetSubTaskByIdAsync(subTaskRequest.Id);
-            if (subTask is null)
-            {
-                return ApiResponse<SubtaskDto?>.Failure("Subtask not found or access denied.", []);
-            }
-
-            subTask.Description = subTaskRequest.Description ?? subTask.Description;
-            subTask.IsCompleted = subTaskRequest.IsCompleted ?? subTask.IsCompleted;
-
-            var updatedSubTask = await _subTaskRepository.UpdateSubTaskAsync(subTask);
-            if (updatedSubTask is null)
-            {
-                return ApiResponse<SubtaskDto?>.Failure("Failed to update subtask.", []);
-            }
-
-            var response = new SubtaskDto
-            {
-                Description = updatedSubTask.Description,
-                IsCompleted = updatedSubTask.IsCompleted,
-                Id = updatedSubTask.Id
-            };
-
-            return ApiResponse<SubtaskDto?>.Success(response, "Subtask updated successfully.");
-        }
+        var updatedSubTask = await _subTaskRepository.UpdateAsync(subTaskDb);
+        return new UpdateSubTaskResponseDto(updatedSubTask.Description, updatedSubTask.IsCompleted);
     }
 }

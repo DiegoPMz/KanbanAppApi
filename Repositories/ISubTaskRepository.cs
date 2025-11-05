@@ -1,14 +1,13 @@
 ﻿using KanbanAppApi.Models;
 
-namespace KanbanAppApi.Repositories
+namespace KanbanAppApi.Repositories;
+
+public interface ISubTaskRepository
 {
-    public interface ISubTaskRepository
-    {
-        Task<SubTask?> CreateSubTaskAsync(SubTask subTask);
-        Task<IEnumerable<SubTask>> GetSubTasksByBoardTaskIdAsync(int boardTaskId);
-        Task<SubTask?> GetSubTaskByIdAsync(int subTaskId);
-        Task<SubTask?> UpdateSubTaskAsync(SubTask subTask);
-        Task DeleteSubTask(SubTask subTask);
-        Task<bool> SubTaskExistsByUserIdAsync(Guid userId, int subTaskId);
-    }
+    Task<SubTask> CreateAsync(SubTask subTask);
+    Task<IEnumerable<SubTask>> GetAllByBoardTaskIdAsync(int boardTaskId);
+    Task<SubTask?> GetByIdAsync(int subTaskId);
+    Task<SubTask> UpdateAsync(SubTask subTask);
+    Task DeleteAsync(SubTask subTask);
+    Task<bool> UserOwnsSubTaskAsync(Guid userId, int subTaskId);
 }

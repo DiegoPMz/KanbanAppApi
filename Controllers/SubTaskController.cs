@@ -1,55 +1,71 @@
 ﻿using KanbanAppApi.Dtos;
+using KanbanAppApi.Errors;
 using KanbanAppApi.Filters;
 using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace KanbanAppApi.Controllers
+namespace KanbanAppApi.Controllers;
+
+[Authorize]
+[RequireUserId]
+[ApiController]
+[Route("api/subTasks")]
+public class SubTaskController : ControllerBase
 {
-    [Authorize]
-    [RequireUserId]
-    [ApiController]
-    [Route("api/subTasks")]
-    public class SubTaskController : ControllerBase
+    private readonly ISubTaskService _subTaskService;
+    public SubTaskController(ISubTaskService subTaskService) => _subTaskService = subTaskService;
+
+    [HttpPost]
+    [ProducesResponseType(typeof(SubtaskDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails),StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateSubTask([FromBody] CreateSubTaskRequestDto subTaskRequest)
     {
-        private readonly ISubTaskService _subTaskService;
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var createdSubtaskResult = await _subTaskService.CreateAsync(userId, subTaskRequest);
 
-        public SubTaskController(ISubTaskService subTaskService)
-        {
-            _subTaskService = subTaskService;
-        }
+        return createdSubtaskResult.IsSuccess
+            ? Ok(createdSubtaskResult.Value)
+            : Problem(
+                title: createdSubtaskResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: createdSubtaskResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+    }
 
-        [HttpPost]
-        public async Task<IResult> CreateSubTask([FromBody] CreateSubTaskRequestDto subTaskRequest)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var createdSubtaskService = await _subTaskService.CreateSubTaskAsync(subTaskRequest);
+    [HttpPut]
+    [ProducesResponseType(typeof(UpdateSubTaskResponseDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ValidationProblemDetails),StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateSubTask([FromBody] UpdateSubTaskRequestDto subTaskRequest)
+    {
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var updatedSubtaskResult = await _subTaskService.UpdateAsync(userId, subTaskRequest);
 
-            return createdSubtaskService.Succeeded
-                ? TypedResults.Ok(createdSubtaskService)
-                : TypedResults.BadRequest(createdSubtaskService);
-        }
+        return updatedSubtaskResult.IsSuccess
+            ? Ok(updatedSubtaskResult.Value)
+            : Problem(
+                title: updatedSubtaskResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: updatedSubtaskResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
+    }
 
-        [HttpPut]
-        public async Task<IResult> UpdateSubTask([FromBody] UpdateSubTaskRequestDto subTaskRequest)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var updatedSubtaskService = await _subTaskService.UpdateSubTaskAsync(userId, subTaskRequest);
+    [HttpDelete("{subTaskId:int}")]
+    [ProducesResponseType(typeof(string),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails),StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteSubTask([FromRoute] int subTaskId)
+    {
+        var userId = (Guid)HttpContext.Items["UserId"]!;
+        var deletedSubtaskResult = await _subTaskService.DeleteAsync(userId, subTaskId);
 
-            return updatedSubtaskService.Succeeded
-               ? TypedResults.Ok(updatedSubtaskService)
-               : TypedResults.BadRequest(updatedSubtaskService);
-        }
-
-        [HttpDelete("{subTaskId}")]
-        public async Task<IResult> DeleteSubTask([FromRoute] int subTaskId)
-        {
-            var userId = (Guid)HttpContext.Items["UserId"]!;
-            var deletedSubtaskService = await _subTaskService.DeleteSubTaskAsync(userId, subTaskId);
-
-            return deletedSubtaskService.Succeeded
-               ? TypedResults.Ok(deletedSubtaskService)
-               : TypedResults.BadRequest(deletedSubtaskService);
-        }
+        return deletedSubtaskResult.IsSuccess
+            ? Ok(deletedSubtaskResult.Value)
+            : Problem(
+                title: deletedSubtaskResult.Errors[0].Metadata[ErrorsMetadata.ErrorCode]?.ToString(),
+                detail: deletedSubtaskResult.Errors[0].Message,
+                statusCode: StatusCodes.Status404NotFound
+            );
     }
 }
