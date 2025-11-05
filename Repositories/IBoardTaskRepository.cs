@@ -1,14 +1,14 @@
 ﻿using KanbanAppApi.Models;
 
-namespace KanbanAppApi.Repositories
+namespace KanbanAppApi.Repositories;
+
+public interface IBoardTaskRepository
 {
-    public interface IBoardTaskRepository
-    {
-        Task<BoardTask?> CreateBoardTaskAsync(BoardTask boardTask);
-        Task<IEnumerable<BoardTask>> GetBoardTasksByColumnIdAsync(int columnId);
-        Task<BoardTask?> GetBoardTaskByIdAsync(int boardTaskId);
-        Task<BoardTask?> UpdateBoardTaskAsync(BoardTask boardTask);
-        Task UpdateBoardTasksPositionsAsync(List<BoardTask> boardTasks);
-        Task DeleteBoardTask(BoardTask boardTask);
-    }
+    Task<BoardTask> CreateAsync(BoardTask boardTask);
+    Task<List<BoardTask>> GetByColumnIdAsync(int columnId);
+    Task<BoardTask?> GetByIdAsync(int boardTaskId);
+    Task<int> GetCountByColumnIdAsync(int columnId);
+    Task<BoardTask> UpdateAsync(BoardTask boardTask);
+    Task UpdatePositionsAsync(List<BoardTask> boardTasks);
+    Task DeleteAsync(BoardTask boardTask);
 }

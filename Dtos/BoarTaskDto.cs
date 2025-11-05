@@ -1,4 +1,6 @@
-﻿using KanbanAppApi.Models;
+﻿using System.Text.Json.Serialization;
+using KanbanAppApi.Models;
+using KanbanAppApi.Models.Enums;
 
 namespace KanbanAppApi.Dtos;
 
@@ -8,6 +10,9 @@ public class BoarTaskDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public int Position { get; set; }
+    
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public PriorityType Priority { get; set; }
     public List<SubtaskDto> Subtasks { get; set; } = [];
         
     public BoarTaskDto() { }
@@ -18,5 +23,6 @@ public class BoarTaskDto
         Description = boardTask.Description;
         Position = boardTask.Position;
         Subtasks = boardTask.SubTasks.Select(s => new SubtaskDto(s)).ToList();
+        Priority = boardTask.Priority;
     }
 }

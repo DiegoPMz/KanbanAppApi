@@ -4,6 +4,7 @@ using KanbanAppApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace KanbanAppApi.Migrations
 {
     [DbContext(typeof(ApplicationContextDb))]
-    partial class ApplicationContextDBModelSnapshot : ModelSnapshot
+    [Migration("20251101080152_AddPriorityToBoardTask")]
+    partial class AddPriorityToBoardTask
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -76,7 +79,7 @@ namespace KanbanAppApi.Migrations
 
                     b.HasIndex("ColumnId");
 
-                    b.ToTable("tasks");
+                    b.ToTable("Tasks");
                 });
 
             modelBuilder.Entity("KanbanAppApi.Models.Column", b =>
