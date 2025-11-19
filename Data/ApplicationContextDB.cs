@@ -23,7 +23,10 @@ public class ApplicationContextDb(DbContextOptions<ApplicationContextDb> options
         });
             
         modelBuilder.Entity<User>()
-            .HasIndex(u => new { u.Sub, u.Id })
+            .HasKey(u => u.Id); 
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Sub)
             .IsUnique();
 
         base.OnModelCreating(modelBuilder);

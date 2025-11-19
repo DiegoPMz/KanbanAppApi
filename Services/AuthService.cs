@@ -1,11 +1,12 @@
 ﻿using KanbanAppApi.Models;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
 using FluentResults;
 using KanbanAppApi.Errors;
+using Microsoft.IdentityModel.JsonWebTokens;
+using JwtRegisteredClaimNames = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames;
 
 namespace KanbanAppApi.Services
 {
@@ -69,19 +70,19 @@ namespace KanbanAppApi.Services
               .CreateClient()
               .GetFromJsonAsync<JsonWebKeySet>(GoogleCertsEndpoint) ?? throw new Exception("No se pudieron obtener las claves públicas de Google.");
 
-            var tokenHandler = new JwtSecurityTokenHandler();
+            var tokenHandler = new JsonWebTokenHandler();
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuer = "https://accounts.google.com",
+                ValidIssuers = ["accounts.google.com", "https://accounts.google.com"],
                 ValidateAudience = true,
                 ValidAudience = _configuration["Google:ClientId"],
                 ValidateLifetime = true,
                 IssuerSigningKeys = jwks.Keys
             };
 
-            ClaimsPrincipal principal = tokenHandler.ValidateToken(idToken, validationParameters, out var _);
-            return MapGoogleClaims(principal);
+            var tokenValidationResult = await tokenHandler.ValidateTokenAsync(idToken, validationParameters);
+            return MapGoogleClaims(tokenValidationResult.ClaimsIdentity);
         }
 
         public (string GoogleUrl, string CodeVerifier) BuildGoogleLoginUrl()
@@ -125,18 +126,18 @@ namespace KanbanAppApi.Services
             return await _tokenService.CreateAuthTokens(user.Value);
         }
 
-        private static GoogleIdTokenClaims MapGoogleClaims(ClaimsPrincipal principal) => new()
+        private static GoogleIdTokenClaims MapGoogleClaims(ClaimsIdentity claims) => new()
         {
-            Sub = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "",
-            Email = principal.FindFirst(ClaimTypes.Email)?.Value ?? "",
-            EmailVerified = bool.TryParse(principal.FindFirst("email_verified")?.Value, out var verified) ? verified : null,
-            Name = principal.FindFirst("name")?.Value,
-            Picture = principal.FindFirst("picture")?.Value,
-            Exp = long.Parse(principal.FindFirst("exp")?.Value ?? "0"),
-            Iat = long.Parse(principal.FindFirst("iat")?.Value ?? "0"),
-            Aud = principal.FindFirst("aud")?.Value ?? "",
-            Iss = principal.FindFirst("iss")?.Value ?? "",
-            GivenName = principal.FindFirst(ClaimTypes.GivenName)?.Value,
+            Sub = claims.FindFirst("sub")?.Value ?? "",
+            Email = claims.FindFirst("email")?.Value ?? "",
+            EmailVerified = bool.TryParse(claims.FindFirst("email_verified")?.Value, out var verified) ? verified : null,
+            Name = claims.FindFirst("name")?.Value,
+            Picture = claims.FindFirst("picture")?.Value,
+            Exp = long.Parse(claims.FindFirst("exp")?.Value ?? "0"),
+            Iat = long.Parse(claims.FindFirst("iat")?.Value ?? "0"),
+            Aud = claims.FindFirst("aud")?.Value ?? "",
+            Iss = claims.FindFirst("iss")?.Value ?? "",
+            GivenName = claims.FindFirst("given_name")?.Value,
         };
     }
 }

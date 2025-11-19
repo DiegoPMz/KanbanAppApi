@@ -72,7 +72,7 @@ public class AuthController : ControllerBase
             SetAuthCookies(accessToken, refreshToken);
         }
             
-        return Redirect("http://localhost:5173");
+        return Redirect("http://localhost:5173/?isAuthenticated=true&session=FULL");
     }
 
     [Authorize]
