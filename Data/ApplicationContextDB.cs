@@ -1,34 +1,52 @@
-﻿using KanbanAppApi.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace KanbanAppApi.Data;
 
 public class ApplicationContextDb(DbContextOptions<ApplicationContextDb> options) : DbContext(options)
 {
-    public DbSet<User> Users { get; set; }
-    public DbSet<Board> Boards { get; set; }
-    public DbSet<Column> Columns { get; set; }
-    public DbSet<BoardTask> BoardTask { get; set; }
-    public DbSet<SubTask> Subtasks { get; set; }
-    public DbSet<TokenEntity> Tokens { get; set; }
-
+    public DbSet<Core.Entities.Board> Boards { get; set; }
+    public DbSet<Core.Entities.Column> Columns { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<TokenEntity>(entity =>
+        modelBuilder.Entity<Core.Entities.Board>(entity =>
         {
-            entity.HasKey(t => t.Jti);
-
-            entity.Property(t => t.Jti)
-                .ValueGeneratedNever();
-        });
+            entity.ToTable("boards");
+            entity.HasKey(b => b.Id);
             
-        modelBuilder.Entity<User>()
-            .HasKey(u => u.Id); 
+            entity.HasMany(b => b.Columns)
+                .WithOne()
+                .HasForeignKey("board_id")
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<User>()
-            .HasIndex(u => u.Sub)
-            .IsUnique();
+            entity.Property(b => b.UserId)
+                .HasColumnName("user_id")
+                .IsRequired(); 
+            
+            entity.HasIndex("UserId");
+            
+            entity.Property(e=> e.Name)
+                .HasMaxLength(250)
+                .IsRequired();
+        });
+        
+        modelBuilder.Entity<Core.Entities.Column>(entity =>
+        {
+            entity.ToTable("columns");
+            entity.HasKey(e => e.Id);
+            
+            entity.Property(e=> e.Name)
+                .HasMaxLength(250)
+                .IsRequired();
+            
+            entity.Property(c => c.Order)
+                .IsRequired();
 
+            entity.Property(e => e.Color)
+                .HasMaxLength(20);
+        });
+        
         base.OnModelCreating(modelBuilder);
     }
 }
