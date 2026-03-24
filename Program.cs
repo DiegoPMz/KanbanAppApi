@@ -4,6 +4,7 @@ using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using KanbanAppApi.Features.Board;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,8 +14,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<ApplicationContextDb>(options => options.UseSqlServer(connectionString));
+builder.Services.AddDbContextPool<ApplicationContextDb>(opt =>
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("KanbanDbConnection"))
+);
 
 // Add services to the container.
 builder.Services.AddProblemDetails(options =>
@@ -29,31 +31,15 @@ builder.Services.AddProblemDetails(options =>
 });
 
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IBoardRepository, BoardRepository>();
-builder.Services.AddScoped<IColumnRepository, ColumnRepository>();
-builder.Services.AddScoped<IBoardTaskRepository, BoardTaskRepository>();
-builder.Services.AddScoped<ISubTaskRepository, SubTaskRepository>();
-builder.Services.AddScoped<ITokenEntityRepository,TokenEntityRepository>(); 
 
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<IBoardService, BoardService>();
-builder.Services.AddScoped<IColumnService, ColumnService>();
-builder.Services.AddScoped<IBoardTaskService, BoardTaskService>();
-builder.Services.AddScoped<ISubTaskService, SubTaskService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ITokenService, TokenService>();
-
-builder.Services.AddCors(options =>
-{
-   options.AddDefaultPolicy(policy =>
-   {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
+builder.Services.AddScoped<CreateBoard.ICommandHandler, CreateBoard.CommandHandler>();
+builder.Services.AddScoped<UpdateBoard.ICommandHandler, UpdateBoard.CommandHandler>();
+builder.Services.AddScoped<DeleteBoard.ICommandHandler, DeleteBoard.CommandHandler>();
+builder.Services.AddScoped<GetBoardsPaginated.IQueryHandler, GetBoardsPaginated.QueryHandler>();
+builder.Services.AddScoped<AddColumn.ICommandHandler, AddColumn.CommandHandler>();
+builder.Services.AddScoped<RemoveColumn.ICommandHandler, RemoveColumn.CommandHandler>();
+builder.Services.AddScoped<UpdateColumn.ICommandHandler, UpdateColumn.CommandHandler>();
+builder.Services.AddScoped<ReorderColumn.ICommandHandler, ReorderColumn.CommandHandler>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -104,5 +90,14 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+CreateBoard.CreateBoardEndpoint.Map(app);
+UpdateBoard.UpdateBoardEndpoint.Map(app);
+DeleteBoard.DeleteBoardEndpoint.Map(app);
+GetBoardsPaginated.GetBoardPaginatedEndpoint.Map(app);
+AddColumn.AddColumnEndpoint.Map(app);
+RemoveColumn.RemoveColumnEndpoint.Map(app);
+UpdateColumn.UpdateColumnEndpoint.Map(app);
+ReorderColumn.ReorderColumnEndpoint.Map(app);
 
 app.Run();
