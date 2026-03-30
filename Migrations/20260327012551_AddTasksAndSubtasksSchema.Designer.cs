@@ -3,6 +3,7 @@ using System;
 using KanbanAppApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KanbanAppApi.Migrations
 {
     [DbContext(typeof(ApplicationContextDb))]
-    partial class ApplicationContextDbModelSnapshot : ModelSnapshot
+    [Migration("20260327012551_AddTasksAndSubtasksSchema")]
+    partial class AddTasksAndSubtasksSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -76,8 +79,8 @@ namespace KanbanAppApi.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid[]")
-                        .HasColumnName("task_ids")
-                        .HasDefaultValueSql("'{}'");
+                        .HasDefaultValue(new Guid[0])
+                        .HasColumnName("task_ids");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -98,9 +101,6 @@ namespace KanbanAppApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -112,9 +112,6 @@ namespace KanbanAppApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("task_id")
                         .HasColumnType("uuid");

@@ -4,7 +4,11 @@ using KanbanAppApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using System.Text.Json.Serialization;
 using KanbanAppApi.Features.Board;
+using KanbanAppApi.Features.Task;
+using Mediator;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +31,11 @@ builder.Services.AddProblemDetails(options =>
 
         context.ProblemDetails.Extensions.TryAdd("requestId", context.HttpContext.TraceIdentifier);
     };
+});
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
 builder.Services.AddHttpClient();
@@ -90,9 +99,19 @@ CreateBoard.CreateBoardEndpoint.Map(app);
 UpdateBoard.UpdateBoardEndpoint.Map(app);
 DeleteBoard.DeleteBoardEndpoint.Map(app);
 GetBoardsPaginated.GetBoardPaginatedEndpoint.Map(app);
+
 AddColumn.AddColumnEndpoint.Map(app);
 RemoveColumn.RemoveColumnEndpoint.Map(app);
 UpdateColumn.UpdateColumnEndpoint.Map(app);
 ReorderColumn.ReorderColumnEndpoint.Map(app);
+
+CreateTask.CreateTaskEndpoint.Map(app);
+GetTask.GetTaskEndpoint.Map(app);
+UpdateTask.UpdateTaskEndpoint.Map(app);
+DeleteTask.DeleteTaskEndpoint.Map(app);
+
+AddSubTask.AddSubTaskEndpoint.Map(app);
+RemoveSubTask.RemoveSubTaskEndpoint.Map(app);
+UpdateSubTask.UpdateSubTaskEndpoint.Map(app);
 
 app.Run();
