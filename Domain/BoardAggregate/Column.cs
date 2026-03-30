@@ -9,6 +9,9 @@ public class Column
     public DateTime CreatedAt { get; private init; }
     public DateTime UpdatedAt { get; private set; }
     
+    private readonly List<Guid> _taskIds = [];
+    public IReadOnlyCollection<Guid> TaskIds => _taskIds.AsReadOnly();
+    
     private Column() { }
 
     public Column (string name, int order, string? color)
@@ -32,5 +35,18 @@ public class Column
         Order = newOrder;
         UpdatedAt = DateTime.UtcNow;
     }
-    
+
+    public void AddTask(Guid taskId)
+    {
+        _taskIds.Insert(0, taskId);
+    }
+
+    public void RemoveTask(Guid taskId)
+    {
+        if (_taskIds.Contains(taskId))
+        {
+            _taskIds.Remove(taskId);
+            UpdatedAt = DateTime.UtcNow; 
+        }
+    }
 }

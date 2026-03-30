@@ -4,6 +4,7 @@ using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
 using KanbanAppApi.Data;
 using KanbanAppApi.Domain.BoardAggregate;
+using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,25 +12,23 @@ namespace KanbanAppApi.Features.Board;
 
 public sealed class DeleteBoard
 {
-    public record struct Command(Guid UserId, Guid Id);
+    public record struct DeleteBoardCommand(Guid UserId, Guid Id)
+        :ICommand<ErrorOr<string>>;
     
-    public interface ICommandHandler
+    public class CommandHandler(ApplicationContextDb context) 
+        : ICommandHandler<DeleteBoardCommand, ErrorOr<string>> 
     {
-        Task<ErrorOr<string>> HandleAsync(Command command);
-    }
-
-    public class CommandHandler(ApplicationContextDb context) : ICommandHandler
-    {
-        public async Task<ErrorOr<string>> HandleAsync(Command command)
+        public async ValueTask<ErrorOr<string>> Handle(DeleteBoardCommand command, CancellationToken ct)
         {
             var board = await context.Boards
                 .Where(b => b.Id == command.Id &&  b.UserId == command.UserId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
             
-            if (board is null) return BoardErrors.NotFound(command.Id.ToString());
+            if (board is null) return 
+                BoardErrors.NotFound(command.Id.ToString());
         
             context.Boards.Remove(board);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
             
             return "Board deleted successfully";
         }
@@ -41,12 +40,14 @@ public sealed class DeleteBoard
         {
             app.MapDelete("api/boards/{id:guid}", async Task<Results<Ok<string>, ProblemHttpResult>> (
                 Guid id, 
-                ICommandHandler handler,
+                IMediator mediator,
                 ClaimsPrincipal user
             ) =>
             {
-                if (user.GetUserId() is not { } userId) return ApiErrorHandler.Problem(Error.Unauthorized());
-                var result = await handler.HandleAsync(new Command(userId,id));
+                if (user.GetUserId() is not { } userId) return 
+                    ApiErrorHandler.Problem(Error.Unauthorized());
+                
+                var result = await mediator.Send(new DeleteBoardCommand(userId,id));
 
                 return !result.IsError
                     ? TypedResults.Ok(result.Value)

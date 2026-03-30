@@ -14,9 +14,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContextPool<ApplicationContextDb>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("KanbanDbConnection"))
-);
+builder.Services.AddDbContext<ApplicationContextDb>(opt =>
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("KanbanDbConnection")));
 
 // Add services to the container.
 builder.Services.AddProblemDetails(options =>
@@ -32,14 +31,6 @@ builder.Services.AddProblemDetails(options =>
 
 builder.Services.AddHttpClient();
 
-builder.Services.AddScoped<CreateBoard.ICommandHandler, CreateBoard.CommandHandler>();
-builder.Services.AddScoped<UpdateBoard.ICommandHandler, UpdateBoard.CommandHandler>();
-builder.Services.AddScoped<DeleteBoard.ICommandHandler, DeleteBoard.CommandHandler>();
-builder.Services.AddScoped<GetBoardsPaginated.IQueryHandler, GetBoardsPaginated.QueryHandler>();
-builder.Services.AddScoped<AddColumn.ICommandHandler, AddColumn.CommandHandler>();
-builder.Services.AddScoped<RemoveColumn.ICommandHandler, RemoveColumn.CommandHandler>();
-builder.Services.AddScoped<UpdateColumn.ICommandHandler, UpdateColumn.CommandHandler>();
-builder.Services.AddScoped<ReorderColumn.ICommandHandler, ReorderColumn.CommandHandler>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -69,6 +60,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             }
         };
     });
+builder.Services.AddMediator(options => 
+{
+    options.ServiceLifetime = ServiceLifetime.Scoped; 
+});
 
 var app = builder.Build();
 

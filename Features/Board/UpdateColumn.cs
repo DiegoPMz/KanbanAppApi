@@ -6,6 +6,7 @@ using KanbanAppApi.Common.Http;
 using KanbanAppApi.Data;
 using KanbanAppApi.Domain.BoardAggregate;
 using KanbanAppApi.Features.Board.Shared;
+using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,33 +16,30 @@ namespace KanbanAppApi.Features.Board;
 public class UpdateColumn
 {
     public record struct UpdateColumnRequestDTo(string? Name, string? Color);
-    public record struct Command(Guid UserId, Guid BoardId, Guid ColumnId, string? Name, string? Color);
+    public record struct UpdateColumnCommand(Guid UserId, Guid BoardId, Guid ColumnId, string? Name, string? Color)
+        :ICommand<ErrorOr<ColumnDto>>;
     
-    public interface ICommandHandler
+    public class UpdateColumnHandler(ApplicationContextDb context) 
+        : ICommandHandler<UpdateColumnCommand,ErrorOr<ColumnDto>>
     {
-        Task<ErrorOr<ColumnDto>> HandleAsync(Command command);
-    }
-    
-    public class CommandHandler(ApplicationContextDb context) : ICommandHandler
-    {
-        public async Task<ErrorOr<ColumnDto>> HandleAsync(Command command)
+        public async ValueTask<ErrorOr<ColumnDto>> Handle(UpdateColumnCommand command, CancellationToken ct)
         {
             var board = await context.Boards
                 .Include(b => b.Columns) 
                 .Where(b => b.UserId == command.UserId && b.Id == command.BoardId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
             
-            if (board is null) return BoardErrors.NotFound(command.BoardId.ToString());
+            if (board is null) return 
+                BoardErrors.NotFound(command.BoardId.ToString());
             
             var result = board.EditColumn(command.ColumnId, command.Name, command.Color);
             if (result.IsError) return result.Errors;
             
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
             return ColumnDto.FromEntity(result.Value);
         }
     }
     
-        
     public class Validator: AbstractValidator<UpdateColumnRequestDTo> {
         public Validator()
         {
@@ -67,16 +65,19 @@ public class UpdateColumn
                 [FromBody] UpdateColumnRequestDTo dto, 
                 Guid boardId,
                 Guid columnId,
-                ICommandHandler handler,
+                IMediator mediator,
                 ClaimsPrincipal user
             ) =>
             {
-                if (user.GetUserId() is not { } userId) return ApiErrorHandler.Problem(Error.Unauthorized());
+                if (user.GetUserId() is not { } userId) 
+                    return ApiErrorHandler.Problem(Error.Unauthorized());
                 
                 var validation = await new Validator().ValidateAsync(dto);
-                if (!validation.IsValid) return TypedResults.ValidationProblem(validation.ToDictionary());
                 
-                var result = await handler.HandleAsync(new Command(userId, boardId, columnId, dto.Name, dto.Color));
+                if (!validation.IsValid) 
+                    return TypedResults.ValidationProblem(validation.ToDictionary());
+                
+                var result = await mediator.Send(new UpdateColumnCommand(userId, boardId, columnId, dto.Name, dto.Color));
 
                 return !result.IsError
                     ? TypedResults.Ok(result.Value)

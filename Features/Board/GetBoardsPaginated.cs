@@ -1,11 +1,12 @@
 ﻿using System.Security.Claims;
 using System.Text;
-using FluentResults;
+using ErrorOr;
 using FluentValidation;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
 using KanbanAppApi.Data;
 using KanbanAppApi.Features.Board.Shared;
+using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Error = ErrorOr.Error;
@@ -14,8 +15,6 @@ namespace KanbanAppApi.Features.Board;
 
 public sealed class GetBoardsPaginated
 {
-    public record struct Query(int Limit, string? Cursor, Guid UserId);
-
     public record struct QueryParameters(int Limit = 10, string? Cursor = null);
 
     public record PaginationResponse<TI>(
@@ -25,12 +24,10 @@ public sealed class GetBoardsPaginated
         bool HasNextPage,
         bool HasPreviousPage
     );
-
-    public interface IQueryHandler
-    {
-        Task<Result<PaginationResponse<BoardDto>>> HandleAsync(Query query);
-    }
-
+    
+    public record struct GetBoardsPaginatedQuery(int Limit, string? Cursor, Guid UserId)
+         : IQuery<ErrorOr<PaginationResponse<BoardDto>>>;
+    
     private static string? SafeEncode(string? text) =>
         string.IsNullOrEmpty(text) ? null : Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
 
@@ -49,9 +46,10 @@ public sealed class GetBoardsPaginated
         return Convert.TryFromBase64String(s, buffer, out _);
     }
 
-    public class QueryHandler(ApplicationContextDb context) : IQueryHandler
+    public class GetBoardsPaginatedQueryHandler(ApplicationContextDb context) 
+        : IQueryHandler<GetBoardsPaginatedQuery, ErrorOr<PaginationResponse<BoardDto>>>
     {
-        public async Task<Result<PaginationResponse<BoardDto>>> HandleAsync(Query query)
+        public async ValueTask<ErrorOr<PaginationResponse<BoardDto>>> Handle(GetBoardsPaginatedQuery query, CancellationToken ct)
         {
             var queryable = context.Boards
                 .AsNoTracking()
@@ -63,7 +61,7 @@ public sealed class GetBoardsPaginated
             {
                 var decoded = SafeDecode(query.Cursor);
                 if (!Guid.TryParse(decoded, out var cursorValue))
-                    return Result.Fail("Invalid cursor format.");
+                    return Error.Validation("Invalid cursor format.");
 
                 queryable = queryable.Where(b => b.Id > cursorValue);
             }
@@ -71,7 +69,7 @@ public sealed class GetBoardsPaginated
             var itemsWithExtra = await queryable
                 .Take(query.Limit + 1)
                 .Select(b => BoardDto.FromEntity(b))
-                .ToListAsync();
+                .ToListAsync(ct);
 
             var hasNextPage = itemsWithExtra.Count > query.Limit;
             var results = itemsWithExtra.Take(query.Limit).ToList();
@@ -114,18 +112,22 @@ public sealed class GetBoardsPaginated
         {
             app.MapGet("api/boards",  async Task<Results<Ok<PaginationResponse<BoardDto>>, ProblemHttpResult, ValidationProblem>> (
                 [AsParameters] QueryParameters queryParameters,
-                IQueryHandler handler,
+                IMediator mediator,
                 ClaimsPrincipal user
             ) =>
             {
-                if (user.GetUserId() is not { } userId) return ApiErrorHandler.Problem(Error.Unauthorized());
+                if (user.GetUserId() is not { } userId) return 
+                    ApiErrorHandler.Problem(Error.Unauthorized());
                 
                 var validation = await new Validator().ValidateAsync(queryParameters);
-                if (!validation.IsValid) return TypedResults.ValidationProblem(validation.ToDictionary());
+                
+                if (!validation.IsValid) return 
+                    TypedResults.ValidationProblem(validation.ToDictionary());
 
-                var result = await handler.HandleAsync(new Query(queryParameters.Limit, queryParameters.Cursor, userId));
+                var query = new GetBoardsPaginatedQuery(queryParameters.Limit, queryParameters.Cursor, userId);
+                var result = await mediator.Send(query);
 
-                return result.IsSuccess
+                return !result.IsError
                     ? TypedResults.Ok(result.Value)
                     : TypedResults.Problem();
             }).RequireAuthorization();

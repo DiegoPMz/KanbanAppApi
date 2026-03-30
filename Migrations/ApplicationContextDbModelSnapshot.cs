@@ -22,7 +22,7 @@ namespace KanbanAppApi.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("KanbanAppApi.Common.Entities.Board", b =>
+            modelBuilder.Entity("KanbanAppApi.Domain.BoardAggregate.Board", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -50,7 +50,7 @@ namespace KanbanAppApi.Migrations
                     b.ToTable("boards", (string)null);
                 });
 
-            modelBuilder.Entity("KanbanAppApi.Common.Entities.Column", b =>
+            modelBuilder.Entity("KanbanAppApi.Domain.BoardAggregate.Column", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -71,6 +71,13 @@ namespace KanbanAppApi.Migrations
 
                     b.Property<int>("Order")
                         .HasColumnType("integer");
+
+                    b.PrimitiveCollection<Guid[]>("TaskIds")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("task_ids")
+                        .HasDefaultValueSql("'{}'");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

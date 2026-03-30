@@ -6,39 +6,38 @@ using KanbanAppApi.Common.Http;
 using KanbanAppApi.Data;
 using KanbanAppApi.Domain.BoardAggregate;
 using KanbanAppApi.Features.Board.Shared;
+using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace KanbanAppApi.Features.Board;
 
-public class ReorderColumn
+public sealed class ReorderColumn
 {
     public record ReorderColumnRequestDto(List<ColumnOrderInput> Columns);
     
-    public record struct Command(Guid UserId, Guid BoardId, List<ColumnOrderInput> ReorderedColumns);
+    public record struct ReorderColumnCommand(Guid UserId, Guid BoardId, List<ColumnOrderInput> ReorderedColumns)
+        : ICommand<ErrorOr<List<ColumnDto>>>;
     
-    public interface ICommandHandler
+    public class ReorderColumnHandler(ApplicationContextDb context) 
+        : ICommandHandler<ReorderColumnCommand,  ErrorOr<List<ColumnDto>>>
     {
-        Task<ErrorOr<List<ColumnDto>>> HandleAsync(Command command);
-    }
-
-    public class CommandHandler(ApplicationContextDb context) : ICommandHandler
-    {
-        public async Task<ErrorOr<List<ColumnDto>>> HandleAsync(Command command)
+        public async ValueTask<ErrorOr<List<ColumnDto>>> Handle(ReorderColumnCommand command, CancellationToken ct)
         {
             var board = await context.Boards
                 .Where(b => b.Id == command.BoardId && b.UserId == command.UserId)
                 .Include(b => b.Columns)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
             
-            if (board == null) return BoardErrors.NotFound(command.BoardId.ToString());
+            if (board == null) return 
+                BoardErrors.NotFound(command.BoardId.ToString());
 
-           var result = board.ReorderColumns(command.ReorderedColumns);
-           if (result.IsError) return result.Errors;
+            var result = board.ReorderColumns(command.ReorderedColumns);
+            if (result.IsError) return result.Errors;
            
-           await  context.SaveChangesAsync();
-           return board.Columns.Select(ColumnDto.FromEntity).ToList();
+            await  context.SaveChangesAsync(ct);
+            return board.Columns.Select(ColumnDto.FromEntity).ToList();
         }
     }
     
@@ -66,18 +65,21 @@ public class ReorderColumn
         public static void Map(WebApplication app)
         {
             app.MapPut("api/boards/{boardId:guid}/columns/reorder", async Task<Results<Ok<List<ColumnDto>>, ProblemHttpResult, ValidationProblem>> (
-                [FromBody] ReorderColumn.ReorderColumnRequestDto dto, 
+                [FromBody] ReorderColumnRequestDto dto, 
                 Guid boardId,
-                ReorderColumn.ICommandHandler handler,
+                IMediator mediator,
                 ClaimsPrincipal user
             ) =>
             {
-                if (user.GetUserId() is not { } userId) return ApiErrorHandler.Problem(Error.Unauthorized());
+                if (user.GetUserId() is not { } userId) return 
+                    ApiErrorHandler.Problem(Error.Unauthorized());
 
-                var validation = await new ReorderColumn.Validator().ValidateAsync(dto);
-                if (!validation.IsValid) return TypedResults.ValidationProblem(validation.ToDictionary());
+                var validation = await new Validator().ValidateAsync(dto);
                 
-                var result = await handler.HandleAsync(new ReorderColumn.Command(userId, boardId, dto.Columns));
+                if (!validation.IsValid) return 
+                    TypedResults.ValidationProblem(validation.ToDictionary());
+                
+                var result = await mediator.Send(new ReorderColumnCommand(userId, boardId, dto.Columns));
 
                 return !result.IsError
                     ? TypedResults.Ok(result.Value)

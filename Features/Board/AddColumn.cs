@@ -6,38 +6,37 @@ using KanbanAppApi.Common.Http;
 using KanbanAppApi.Data;
 using KanbanAppApi.Domain.BoardAggregate;
 using KanbanAppApi.Features.Board.Shared;
+using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace KanbanAppApi.Features.Board;
 
-public class AddColumn
+public sealed class AddColumn
 {
-    public record struct Command(Guid UserId, Guid BoardId, string ColumnName, string ColumnColor);
-    
     public record struct AddColumnRequestDTo(string Name, string Color);
     
-    public interface ICommandHandler
+    public record struct AddColumnCommand(Guid UserId, Guid BoardId, string ColumnName, string ColumnColor)
+        : ICommand<ErrorOr<ColumnDto>>;
+    
+    public class AddColumnHandler(ApplicationContextDb context)
+        :ICommandHandler<AddColumnCommand,  ErrorOr<ColumnDto>>
     {
-        Task<ErrorOr<ColumnDto>> HandleAsync(Command command);
-    }
-
-    public class CommandHandler(ApplicationContextDb context) : ICommandHandler
-    {
-        public async Task<ErrorOr<ColumnDto>> HandleAsync(Command command)
+        public async ValueTask<ErrorOr<ColumnDto>> Handle(AddColumnCommand command, CancellationToken ct)
         {
             var board = await context.Boards
                 .Include(b => b.Columns) 
                 .Where(b => b.UserId == command.UserId && b.Id == command.BoardId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
             
-            if (board is null) return BoardErrors.NotFound(command.BoardId.ToString());
+            if (board is null) return 
+                BoardErrors.NotFound(command.BoardId.ToString());
             
             var result = board.AddColumn(command.ColumnName, command.ColumnColor);
             if (result.IsError) return result.Errors;
             
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
             return ColumnDto.FromEntity(result.Value);
         }
     }
@@ -59,16 +58,19 @@ public class AddColumn
             app.MapPost("api/boards/{boardId:guid}/columns",  async Task<Results<Ok<ColumnDto>, ProblemHttpResult, ValidationProblem>> (
                 Guid boardId,
                 [FromBody] AddColumnRequestDTo dto,
-                ICommandHandler handler,
-                ClaimsPrincipal user
+                ClaimsPrincipal user,
+                IMediator mediator
             ) =>
             {
-                if (user.GetUserId() is not { } userId) return ApiErrorHandler.Problem(Error.Unauthorized());
+                if (user.GetUserId() is not { } userId) 
+                    return ApiErrorHandler.Problem(Error.Unauthorized());
                 
                 var validation = await new Validator().ValidateAsync(dto);
-                if (!validation.IsValid) return TypedResults.ValidationProblem(validation.ToDictionary());
+                
+                if (!validation.IsValid) return 
+                    TypedResults.ValidationProblem(validation.ToDictionary());
 
-                var result = await handler.HandleAsync(new Command(userId, boardId, dto.Name, dto.Color));
+                var result = await mediator.Send(new AddColumnCommand(userId, boardId, dto.Name, dto.Color));
                 
                 return !result.IsError
                     ? TypedResults.Ok(result.Value)

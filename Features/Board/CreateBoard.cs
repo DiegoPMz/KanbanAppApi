@@ -1,10 +1,11 @@
 ﻿using System.Security.Claims;
-using FluentResults;
+using ErrorOr;
 using FluentValidation;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
 using KanbanAppApi.Data;
 using KanbanAppApi.Features.Board.Shared;
+using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using BoardEntity = KanbanAppApi.Domain.BoardAggregate.Board;
@@ -16,21 +17,18 @@ public sealed class CreateBoard
 {
     public record struct CreateRequestDto(string Name);
 
-    public record struct Command(Guid UserId, string Name);
-
-    public interface ICommandHandler
+    public record struct CreateBoardCommand(Guid UserId, string Name) 
+        :ICommand<ErrorOr<BoardDto>>;
+    
+    public class CreateBoardHandler(ApplicationContextDb context)
+        :ICommandHandler<CreateBoardCommand,ErrorOr<BoardDto>>
     {
-        Task<Result<BoardDto>> HandleAsync(Command command);
-    }
-
-    public class CommandHandler(ApplicationContextDb context) : ICommandHandler
-    {
-        public async Task<Result<BoardDto>> HandleAsync(Command command)
+        public async ValueTask<ErrorOr<BoardDto>> Handle(CreateBoardCommand command, CancellationToken ct)
         {
             var board = new BoardEntity(command.Name, command.UserId);
 
-            var boardCreated = await context.Boards.AddAsync(board);
-            await context.SaveChangesAsync();
+            var boardCreated = await context.Boards.AddAsync(board,ct);
+            await context.SaveChangesAsync(ct);
 
             return BoardDto.FromEntity(boardCreated.Entity);
         }
@@ -40,7 +38,8 @@ public sealed class CreateBoard
     {
         public Validator()
         {
-            RuleFor(c => c.Name).ValidBoardName();
+            RuleFor(c => c.Name)
+                .ValidBoardName();
         }
     }
 
@@ -48,22 +47,25 @@ public sealed class CreateBoard
     {
         public static void Map(WebApplication app)
         {
-            app.MapPost("api/boards", async Task<Results<Created, ProblemHttpResult, ValidationProblem>> (
+            app.MapPost("api/boards", async Task<Results<Created<BoardDto>, ProblemHttpResult, ValidationProblem>> (
                 [FromBody] CreateRequestDto dto,
-                ICommandHandler handler,
-                ClaimsPrincipal user
+                ClaimsPrincipal user,
+                IMediator mediator
             ) =>
             {
-                if (user.GetUserId() is not { } userId) return ApiErrorHandler.Problem(Error.Unauthorized());
+                if (user.GetUserId() is not { } userId) return 
+                    ApiErrorHandler.Problem(Error.Unauthorized());
 
                 var validation = await new Validator().ValidateAsync(dto);
-                if (!validation.IsValid) return TypedResults.ValidationProblem(validation.ToDictionary());
+                
+                if (!validation.IsValid) 
+                    return TypedResults.ValidationProblem(validation.ToDictionary());
 
-                var result = await handler.HandleAsync(new Command(userId, dto.Name));
-
-                return result.IsSuccess
-                    ? TypedResults.Created()
-                    : TypedResults.Problem();
+                var result = await mediator.Send(new CreateBoardCommand(userId, dto.Name));
+                
+                return !result.IsError
+                    ? TypedResults.Created(string.Empty,result.Value)
+                    : ApiErrorHandler.Problem(result.FirstError);
             }).RequireAuthorization();
         }
     }
