@@ -2,8 +2,8 @@ using System.Security.Claims;
 using ErrorOr;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
-using KanbanAppApi.Data;
-using KanbanAppApi.Domain.TaskAggregate;
+using KanbanAppApi.Common.Domain.TaskAggregate;
+using KanbanAppApi.Common.Persistence;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 

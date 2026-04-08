@@ -1,4 +1,4 @@
-using KanbanAppApi.Domain.BoardAggregate;
+using KanbanAppApi.Common.Domain.BoardAggregate;
 
 namespace KanbanAppApi.Features.Board.Shared;
 

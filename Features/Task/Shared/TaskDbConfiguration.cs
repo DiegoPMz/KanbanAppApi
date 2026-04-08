@@ -1,8 +1,8 @@
-using KanbanAppApi.Domain.BoardAggregate;
+using KanbanAppApi.Common.Domain.BoardAggregate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using TaskModel = KanbanAppApi.Domain.TaskAggregate.Task;
+using TaskModel = KanbanAppApi.Common.Domain.TaskAggregate.Task;
 
 namespace KanbanAppApi.Features.Task.Shared;
 

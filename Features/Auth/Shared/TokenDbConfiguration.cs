@@ -22,7 +22,7 @@ public class TokenDbConfiguration : IEntityTypeConfiguration<Token>
         builder.Property(e => e.ExpiresAt)
             .IsRequired();
 
-        builder.HasOne<Domain.User.User>()
+        builder.HasOne<Common.Domain.User.User>()
             .WithMany()
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);

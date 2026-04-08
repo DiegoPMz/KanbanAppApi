@@ -1,5 +1,5 @@
 using ErrorOr;
-using KanbanAppApi.Domain.TaskAggregate;
+using KanbanAppApi.Common.Domain.TaskAggregate;
 
 namespace KanbanAppApi.Features.Task.Shared;
 

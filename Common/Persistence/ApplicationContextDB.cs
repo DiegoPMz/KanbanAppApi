@@ -1,13 +1,13 @@
-﻿using KanbanAppApi.Common.Events;
-using KanbanAppApi.Domain.BoardAggregate;
-using KanbanAppApi.Domain.TaskAggregate;
-using KanbanAppApi.Domain.User;
+﻿using KanbanAppApi.Common.Domain.BoardAggregate;
+using KanbanAppApi.Common.Domain.TaskAggregate;
+using KanbanAppApi.Common.Domain.User;
+using KanbanAppApi.Common.Events;
 using KanbanAppApi.Features.Auth.Shared;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
-using TaskModel = KanbanAppApi.Domain.TaskAggregate.Task;
+using TaskModel = KanbanAppApi.Common.Domain.TaskAggregate.Task;
 
-namespace KanbanAppApi.Data;
+namespace KanbanAppApi.Common.Persistence;
 
 public class ApplicationContextDb : DbContext
 {

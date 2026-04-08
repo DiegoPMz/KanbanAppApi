@@ -3,12 +3,12 @@ using ErrorOr;
 using FluentValidation;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
-using KanbanAppApi.Data;
+using KanbanAppApi.Common.Persistence;
 using KanbanAppApi.Features.Board.Shared;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using BoardEntity = KanbanAppApi.Domain.BoardAggregate.Board;
+using BoardEntity = KanbanAppApi.Common.Domain.BoardAggregate.Board;
 using Error = ErrorOr.Error;
 
 namespace KanbanAppApi.Features.Board;

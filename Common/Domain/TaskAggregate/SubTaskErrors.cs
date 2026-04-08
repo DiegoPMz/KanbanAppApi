@@ -1,6 +1,6 @@
 using ErrorOr;
 
-namespace KanbanAppApi.Domain.TaskAggregate;
+namespace KanbanAppApi.Common.Domain.TaskAggregate;
 
 public static class SubTaskErrors
 {

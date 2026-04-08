@@ -1,4 +1,4 @@
-﻿namespace KanbanAppApi.Domain.BoardAggregate;
+﻿namespace KanbanAppApi.Common.Domain.BoardAggregate;
 
 public class Column
 {

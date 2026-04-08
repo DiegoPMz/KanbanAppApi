@@ -1,4 +1,4 @@
-using KanbanAppApi.Domain.TaskAggregate;
+using KanbanAppApi.Common.Domain.TaskAggregate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

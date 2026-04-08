@@ -1,7 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using ErrorOr;
 
-namespace KanbanAppApi.Domain.TaskAggregate;
+namespace KanbanAppApi.Common.Domain.TaskAggregate;
 
 public class SubTask
 {

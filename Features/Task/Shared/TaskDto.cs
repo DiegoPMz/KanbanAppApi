@@ -1,5 +1,5 @@
-using KanbanAppApi.Domain.TaskAggregate;
-using TaskModel = KanbanAppApi.Domain.TaskAggregate.Task;
+using KanbanAppApi.Common.Domain.TaskAggregate;
+using TaskModel = KanbanAppApi.Common.Domain.TaskAggregate.Task;
 
 namespace KanbanAppApi.Features.Task.Shared;
 

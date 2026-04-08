@@ -4,7 +4,7 @@ using ErrorOr;
 using FluentValidation;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
-using KanbanAppApi.Data;
+using KanbanAppApi.Common.Persistence;
 using KanbanAppApi.Features.Board.Shared;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;

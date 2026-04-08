@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using ErrorOr;
 using FluentValidation;
+using KanbanAppApi.Common.Domain.TaskAggregate;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
-using KanbanAppApi.Data;
-using KanbanAppApi.Domain.TaskAggregate;
+using KanbanAppApi.Common.Persistence;
 using KanbanAppApi.Features.Task.Shared;
 using Mediator;
 using Microsoft.EntityFrameworkCore;

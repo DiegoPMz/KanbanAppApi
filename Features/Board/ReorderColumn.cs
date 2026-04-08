@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using ErrorOr;
 using FluentValidation;
+using KanbanAppApi.Common.Domain.BoardAggregate;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
-using KanbanAppApi.Data;
-using KanbanAppApi.Domain.BoardAggregate;
+using KanbanAppApi.Common.Persistence;
 using KanbanAppApi.Features.Board.Shared;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;

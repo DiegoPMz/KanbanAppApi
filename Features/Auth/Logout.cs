@@ -1,5 +1,5 @@
 using ErrorOr;
-using KanbanAppApi.Data;
+using KanbanAppApi.Common.Persistence;
 using Mediator;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;

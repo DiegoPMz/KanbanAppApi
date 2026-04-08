@@ -2,7 +2,7 @@ using ErrorOr;
 using KanbanAppApi.Common.Events;
 using Mediator;
 
-namespace KanbanAppApi.Domain.TaskAggregate;
+namespace KanbanAppApi.Common.Domain.TaskAggregate;
 
 public enum PriorityType
 {

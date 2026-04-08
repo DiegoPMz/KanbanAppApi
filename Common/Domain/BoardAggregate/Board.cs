@@ -1,6 +1,6 @@
 ﻿using ErrorOr;
 
-namespace KanbanAppApi.Domain.BoardAggregate;
+namespace KanbanAppApi.Common.Domain.BoardAggregate;
 
 public record ColumnOrderInput(Guid Id, int NewOrder);
 

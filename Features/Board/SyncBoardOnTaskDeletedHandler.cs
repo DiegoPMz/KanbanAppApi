@@ -1,5 +1,5 @@
-using KanbanAppApi.Data;
-using KanbanAppApi.Domain.TaskAggregate;
+using KanbanAppApi.Common.Domain.TaskAggregate;
+using KanbanAppApi.Common.Persistence;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 

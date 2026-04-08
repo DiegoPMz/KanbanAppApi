@@ -1,6 +1,6 @@
 using ErrorOr;
 
-namespace KanbanAppApi.Domain.User;
+namespace KanbanAppApi.Common.Domain.User;
 
 public static class UserErrors
 {

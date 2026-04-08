@@ -1,4 +1,4 @@
-using KanbanAppApi.Domain.BoardAggregate;
+using KanbanAppApi.Common.Domain.BoardAggregate;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace KanbanAppApi.Features.User.Shared;
 
-public class UserDbConfiguration : IEntityTypeConfiguration<Domain.User.User>
+public class UserDbConfiguration : IEntityTypeConfiguration<Common.Domain.User.User>
 {
-    public void Configure(EntityTypeBuilder<Domain.User.User> builder)
+    public void Configure(EntityTypeBuilder<Common.Domain.User.User> builder)
     {
         builder.ToTable("users");
             

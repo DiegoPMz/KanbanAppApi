@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace KanbanAppApi.Migrations
+namespace KanbanAppApi.Common.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class UpdateTaskIdsDefaultValueToSqlEmptyArray : Migration

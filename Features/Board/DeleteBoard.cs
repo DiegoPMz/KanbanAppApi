@@ -2,8 +2,8 @@
 using ErrorOr;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
-using KanbanAppApi.Data;
-using KanbanAppApi.Domain.BoardAggregate;
+using KanbanAppApi.Common.Domain.BoardAggregate;
+using KanbanAppApi.Common.Persistence;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;

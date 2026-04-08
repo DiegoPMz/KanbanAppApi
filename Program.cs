@@ -1,6 +1,6 @@
-using KanbanAppApi.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using KanbanAppApi.Common.Persistence;
 using KanbanAppApi.Features.Auth;
 using KanbanAppApi.Features.Auth.Infrastructure;
 using KanbanAppApi.Features.Board;

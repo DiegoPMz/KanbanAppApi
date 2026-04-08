@@ -1,9 +1,9 @@
 using System.Security.Claims;
 using ErrorOr;
+using KanbanAppApi.Common.Domain.User;
 using KanbanAppApi.Common.Extensions;
 using KanbanAppApi.Common.Http;
-using KanbanAppApi.Data;
-using KanbanAppApi.Domain.User;
+using KanbanAppApi.Common.Persistence;
 using KanbanAppApi.Features.User.Shared;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;

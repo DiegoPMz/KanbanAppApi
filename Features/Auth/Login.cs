@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using ErrorOr;
-using KanbanAppApi.Data;
+using KanbanAppApi.Common.Persistence;
 using KanbanAppApi.Features.Auth.Infrastructure;
 using KanbanAppApi.Features.Auth.Shared;
 using Mediator;
@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using UserModel = KanbanAppApi.Domain.User.User;
+using UserModel = KanbanAppApi.Common.Domain.User.User;
 
 namespace KanbanAppApi.Features.Auth;
 
