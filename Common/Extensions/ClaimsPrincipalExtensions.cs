@@ -4,9 +4,11 @@ namespace KanbanAppApi.Common.Extensions;
 
 public static class ClaimsPrincipalExtensions
 {
+    private const string UserIdClaimName = "userId";
+    
     public static Guid? GetUserId(this ClaimsPrincipal user)
     {
-        var claimValue = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        var claimValue = user.FindFirstValue(UserIdClaimName);
         return Guid.TryParse(claimValue, out var userId) ? userId : null;
     }
     

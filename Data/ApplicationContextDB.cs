@@ -1,6 +1,8 @@
 ﻿using KanbanAppApi.Common.Events;
 using KanbanAppApi.Domain.BoardAggregate;
 using KanbanAppApi.Domain.TaskAggregate;
+using KanbanAppApi.Domain.User;
+using KanbanAppApi.Features.Auth.Shared;
 using Mediator;
 using Microsoft.EntityFrameworkCore;
 using TaskModel = KanbanAppApi.Domain.TaskAggregate.Task;
@@ -21,6 +23,8 @@ public class ApplicationContextDb : DbContext
     public DbSet<Column> Columns { get; set; }
     public DbSet<TaskModel> Tasks { get; set; }
     public DbSet<SubTask> SubTasks { get; set; }
+    public DbSet<Token> Tokens { get; set; }
+    public DbSet<User> Users { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

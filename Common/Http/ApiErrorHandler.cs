@@ -19,7 +19,11 @@ public static class ApiErrorHandler
         return TypedResults.Problem(
             statusCode: statusCode,
             title: GetErrorTitle(error.Type),
-            detail: error.Description
+            detail: error.Description,
+            extensions: new Dictionary<string, object?> 
+            { 
+                { "error_code", error.Code } 
+            }
         );
     }
 

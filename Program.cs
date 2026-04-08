@@ -1,27 +1,55 @@
 using KanbanAppApi.Data;
-using KanbanAppApi.Repositories;
-using KanbanAppApi.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
 using System.Text.Json.Serialization;
+using KanbanAppApi.Features.Auth;
+using KanbanAppApi.Features.Auth.Infrastructure;
 using KanbanAppApi.Features.Board;
 using KanbanAppApi.Features.Task;
-using Mediator;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.IdentityModel.Tokens;
+using KanbanAppApi.Features.User;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+//-----> Security Services
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.Name = "kanban-app-session";
+        options.ExpireTimeSpan = TimeSpan.FromDays(3);
+        
+        options.SlidingExpiration = true;
+    });
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(p =>
+    {
+        p.WithOrigins(builder.Configuration["Client:CorsOrigin"]!) 
+            .AllowAnyHeader()
+            .WithMethods("GET", "POST", "PUT", "DELETE")
+            .AllowCredentials();
+    });
+});
+
+
+builder.Services.AddAuthorization();
+
+//-----> Database Services
 builder.Services.AddDbContext<ApplicationContextDb>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("KanbanDbConnection")));
 
-// Add services to the container.
+//-----> infrastructure Services
+builder.Services.AddHttpClient();
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+
 builder.Services.AddProblemDetails(options =>
 {
     options.CustomizeProblemDetails = context =>
@@ -33,67 +61,37 @@ builder.Services.AddProblemDetails(options =>
     };
 });
 
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-});
+builder.Services.AddScoped<Login.IExternalAuthProvider, GoogleAuthProvider>();
 
-builder.Services.AddHttpClient();
-
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters()
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["JwtIssuer"]!,
-            ValidAudience = builder.Configuration["JwtAudience"]!,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSecretKey"]!)),
-        };
-        
-        options.Events = new JwtBearerEvents()
-        {
-            OnMessageReceived = context =>
-            {
-                var accessTokenExist = context.Request.Cookies.TryGetValue("access_token", out var accessToken);
-                if (accessTokenExist)
-                {
-                    context.Token = accessToken;
-                }
-                
-                return Task.CompletedTask;                
-            }
-        };
-    });
 builder.Services.AddMediator(options => 
 {
     options.ServiceLifetime = ServiceLifetime.Scoped; 
 });
 
+//-----> Documentation Services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo() { Title = "Kanban API", Version = "v1" });
+});
+
+
 var app = builder.Build();
 
-app.UseExceptionHandler();
+app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
+    app.MapSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseCors();
+app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
-
-app.UseAuthentication();
-
-app.UseAuthorization();
-
-app.MapControllers();
 
 CreateBoard.CreateBoardEndpoint.Map(app);
 UpdateBoard.UpdateBoardEndpoint.Map(app);
@@ -113,5 +111,10 @@ DeleteTask.DeleteTaskEndpoint.Map(app);
 AddSubTask.AddSubTaskEndpoint.Map(app);
 RemoveSubTask.RemoveSubTaskEndpoint.Map(app);
 UpdateSubTask.UpdateSubTaskEndpoint.Map(app);
+
+Login.LoginEndPoint.Map(app);
+Logout.LogoutEndPoint.Map(app);
+
+GetUser.GetUserEndPoint.Map(app);
 
 app.Run();
