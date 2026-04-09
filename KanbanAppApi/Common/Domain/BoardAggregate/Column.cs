@@ -16,6 +16,7 @@ public class Column
 
     public Column (string name, int order, string? color)
     {
+        Id = Guid.NewGuid();
         Name = name;
         Order = order;
         Color = color ?? "#0387";

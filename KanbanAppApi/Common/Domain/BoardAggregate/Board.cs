@@ -17,12 +17,22 @@ public class Board
     public IReadOnlyCollection<Column> Columns => _columns.AsReadOnly();
     
     private Board(){ }
-    public Board(string name, Guid userId)
+    private Board(string name, Guid userId)
     {
         Name = name;
         UserId = userId;
         CreatedAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public static ErrorOr<Board> Create(string name, Guid userId)
+    {
+        if (name.Trim().Length < 1 || name.Length > 250)
+        {
+            return BoardErrors.InvalidName(name);
+        }
+        
+        return new Board(name,  userId);
     }
     
     public ErrorOr<Column> AddColumn(string name, string? color)
@@ -43,22 +53,27 @@ public class Board
     {
         var column = _columns.FirstOrDefault(c => c.Id == id);
         if (column is null) return BoardErrors.ColumnNotFound(id.ToString());
-        
+
+        if (name is not null && name != column.Name)
+        {
+            if (_columns.Any(c => c.Name == name && c.Id != id)) 
+                return BoardErrors.NameAlreadyExists(name);
+        }
+    
         column.Update(name, color);
-        
         return column;
     }
     
-    public ErrorOr<string> RemoveColumn(Guid id)
+    public ErrorOr<Deleted> RemoveColumn(Guid id)
     {
         var column = _columns.FirstOrDefault(c => c.Id == id);
         if (column is null) return BoardErrors.ColumnNotFound(id.ToString());
         
         _columns.Remove(column);
-        return "Column deleted successfully";
+        return Result.Deleted;
     }
     
-    public ErrorOr<string> ReorderColumns(List<ColumnOrderInput> newOrders)
+    public ErrorOr<Updated> ReorderColumns(List<ColumnOrderInput> newOrders)
     {
         if (newOrders.Count != _columns.Count)
             return BoardErrors.InvalidColumnCount;
@@ -77,7 +92,7 @@ public class Board
             column.UpdateOrder(input.NewOrder); 
         }
 
-        return "Columns reordered successfully";
+        return Result.Updated;
     }
     
 }

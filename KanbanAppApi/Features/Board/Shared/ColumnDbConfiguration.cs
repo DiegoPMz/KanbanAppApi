@@ -9,7 +9,10 @@ public class ColumnDbConfiguration : IEntityTypeConfiguration<Column>
     public void Configure(EntityTypeBuilder<Column> builder)
     {
         builder.ToTable("columns");
+        
         builder.HasKey(e => e.Id);
+        builder.Property(c => c.Id)
+            .ValueGeneratedNever();
             
         builder.Property(e=> e.Name)
             .HasMaxLength(250)

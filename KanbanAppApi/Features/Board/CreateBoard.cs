@@ -8,7 +8,7 @@ using KanbanAppApi.Features.Board.Shared;
 using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using BoardEntity = KanbanAppApi.Common.Domain.BoardAggregate.Board;
+using BoardModel = KanbanAppApi.Common.Domain.BoardAggregate.Board;
 using Error = ErrorOr.Error;
 
 namespace KanbanAppApi.Features.Board;
@@ -25,9 +25,10 @@ public sealed class CreateBoard
     {
         public async ValueTask<ErrorOr<BoardDto>> Handle(CreateBoardCommand command, CancellationToken ct)
         {
-            var board = new BoardEntity(command.Name, command.UserId);
+            var board = BoardModel.Create(command.Name, command.UserId);
+            if (board.IsError) return board.Errors; 
 
-            var boardCreated = await context.Boards.AddAsync(board,ct);
+            var boardCreated = await context.Boards.AddAsync(board.Value,ct);
             await context.SaveChangesAsync(ct);
 
             return BoardDto.FromEntity(boardCreated.Entity);

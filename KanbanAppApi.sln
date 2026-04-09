@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36401.2 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KanbanAppApi", "KanbanAppApi\KanbanAppApi.csproj", "{60EA8188-B22C-408E-911F-1EF9030326C5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KanbanAppApi.Tests", "KanbanAppApi.Tests\KanbanAppApi.Tests.csproj", "{16D3B1A7-91A9-47FF-855A-DB71BC392083}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KanbanAppApi.UnitTests", "KanbanAppApi.UnitTests\KanbanAppApi.UnitTests.csproj", "{16D3B1A7-91A9-47FF-855A-DB71BC392083}"
 EndProject
 Global
 	GlobalSection(SolutionProperties) = preSolution

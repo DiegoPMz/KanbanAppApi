@@ -32,7 +32,7 @@ public sealed class RemoveColumn
             if (result.IsError) return result.Errors;
             
             await context.SaveChangesAsync(ct);
-            return result.Value;
+            return"Column deleted successfully";
         }
     }
     
