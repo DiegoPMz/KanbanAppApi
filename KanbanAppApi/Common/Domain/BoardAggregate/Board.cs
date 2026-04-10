@@ -43,9 +43,9 @@ public class Board
         if (_columns.Count >= 10)
             return BoardErrors.LimitReached(10);
 
-        var newColumn = new Column(name, _columns.Count + 1, color);
+        var newColumn = Column.Create(name, _columns.Count + 1, color);
         
-        _columns.Add(newColumn);
+        _columns.Add(newColumn.Value);
        return newColumn;
     }
     

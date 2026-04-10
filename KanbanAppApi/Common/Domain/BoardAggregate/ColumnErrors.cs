@@ -11,4 +11,8 @@ public static class ColumnErrors
     public static Error InvalidColorFormat(string color) => Error.Validation(
         code: "COLUMN_INVALID_COLOR_FORMAT",
         description: $"The value '{color}' is not a valid hexadecimal color code (e.g., #FFFFFF).");
+    
+    public static  Error InvalidOrder => Error.Validation(
+        code: "Column.InvalidOrder",
+        description: "The order value cannot be negative.");
 }
