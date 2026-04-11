@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KanbanAppApi", "KanbanAppAp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KanbanAppApi.UnitTests", "KanbanAppApi.UnitTests\KanbanAppApi.UnitTests.csproj", "{16D3B1A7-91A9-47FF-855A-DB71BC392083}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KanbanAppApi.IntegrationTests", "KanbanAppApi.IntegrationTests\KanbanAppApi.IntegrationTests.csproj", "{6D57FA02-46EF-4497-AA72-7FBAA60A081A}"
+EndProject
 Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -47,5 +49,17 @@ Global
 		{16D3B1A7-91A9-47FF-855A-DB71BC392083}.Release|x64.Build.0 = Release|Any CPU
 		{16D3B1A7-91A9-47FF-855A-DB71BC392083}.Release|x86.ActiveCfg = Release|Any CPU
 		{16D3B1A7-91A9-47FF-855A-DB71BC392083}.Release|x86.Build.0 = Release|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Debug|x64.Build.0 = Debug|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Debug|x86.Build.0 = Debug|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Release|x64.ActiveCfg = Release|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Release|x64.Build.0 = Release|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Release|x86.ActiveCfg = Release|Any CPU
+		{6D57FA02-46EF-4497-AA72-7FBAA60A081A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
