@@ -18,21 +18,12 @@ public static class ApiErrorHandler
 
         return TypedResults.Problem(
             statusCode: statusCode,
-            title: GetErrorTitle(error.Type),
+            title: error.Code, 
             detail: error.Description,
             extensions: new Dictionary<string, object?> 
             { 
-                { "error_code", error.Code } 
+                { "error_type", error.Type.ToString() } 
             }
         );
     }
-
-    private static string GetErrorTitle(ErrorType errorType) =>
-        errorType switch
-        {
-            ErrorType.Conflict => "Conflict",
-            ErrorType.Validation => "Bad Request",
-            ErrorType.NotFound => "Not Found",
-            _ => "Server Error"
-        };
 }
