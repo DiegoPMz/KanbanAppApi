@@ -15,6 +15,10 @@ public static class UserErrors
     public static Error NameTooLong = Error.Validation(
         code: "USER.NAME_TOO_LONG",
         description: "The name or family name cannot exceed 200 characters.");
+    
+    public static Error FamilyNameTooLong = Error.Validation(
+        code: "USER.FAMILY_NAME_TOO_LONG",
+        description: "Family name cannot exceed 200 characters.");
 
     public static Error PictureUrlTooLong = Error.Validation(
         code: "USER.PICTURE_URL_TOO_LONG",
