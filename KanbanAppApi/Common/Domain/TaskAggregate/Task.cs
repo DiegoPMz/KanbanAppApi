@@ -103,13 +103,15 @@ public class Task : AggregateRoot
     
     public void Delete() => RaiseDomainEvent(new TaskDeletedEvent(Id, ColumnId));
 
-    public ErrorOr<SubTask> AddSubTask(string description, bool? isCompleted)
+    public ErrorOr<SubTask> AddSubTask(string description, bool? isCompleted = null)
     {
         if (_subTasks.Count >= MaxSubTasks) 
             return TaskErrors.MaxSubTasksReached(MaxSubTasks);
 
-        var subTask= new SubTask(description, isCompleted);
-        _subTasks.Add(subTask);
+        var subTask= SubTask.Create(description, isCompleted);
+        if (subTask.IsError) return subTask.Errors;
+        
+        _subTasks.Add(subTask.Value);
         
         UpdatedAt = DateTime.UtcNow;
         return subTask;

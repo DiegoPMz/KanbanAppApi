@@ -9,7 +9,10 @@ public class SubTaskDbConfiguration: IEntityTypeConfiguration<SubTask>
     public void Configure(EntityTypeBuilder<SubTask> builder)
     {
         builder.ToTable("subtasks");
+        
         builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id)
+            .ValueGeneratedNever();
 
         builder.Property(e => e.Description)
                 .HasMaxLength(250)

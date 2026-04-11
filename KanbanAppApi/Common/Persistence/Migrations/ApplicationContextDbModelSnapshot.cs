@@ -94,7 +94,6 @@ namespace KanbanAppApi.Common.Persistence.Migrations
             modelBuilder.Entity("KanbanAppApi.Common.Domain.TaskAggregate.SubTask", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")

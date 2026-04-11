@@ -13,18 +13,30 @@ public class SubTask
     public DateTime UpdatedAt { get; private set; }
     
     private SubTask() { }
-    public SubTask(string description, bool? isCompleted)
+    private SubTask(string description, bool? isCompleted)
     {
+        Id = Guid.NewGuid();
         Description = description;
         IsCompleted = isCompleted ?? false;
         CreatedAt = DateTime.UtcNow;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = CreatedAt;
     }
 
-    public ErrorOr<Success> Update(string? description, bool? isCompleted)
+    public static ErrorOr<SubTask> Create(string description, bool? isCompleted = null)
+    {
+        if (string.IsNullOrWhiteSpace(description))
+            return  SubTaskErrors.DescriptionRequired;
+        
+        if (description.Length > MaxLengthDescription)
+            return SubTaskErrors.DescriptionTooLong(MaxLengthDescription);
+        
+        return new SubTask(description, isCompleted);
+    } 
+
+    public ErrorOr<Updated> Update(string? description, bool? isCompleted)
     {
         if (description == Description && isCompleted == IsCompleted)
-            return Result.Success;
+            return Result.Updated;
 
         var hasChanged = false;
 
@@ -54,6 +66,6 @@ public class SubTask
             UpdatedAt = DateTime.UtcNow;
         }
 
-        return Result.Success;;
+        return Result.Updated;;
     }
 }
