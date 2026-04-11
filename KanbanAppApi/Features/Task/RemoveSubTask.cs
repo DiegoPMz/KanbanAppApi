@@ -32,7 +32,7 @@ public sealed class RemoveSubTask
             if (!result.IsError) return result.Errors;
             
             await context.SaveChangesAsync(ct);
-            return result.Value;
+            return "Subtask deleted successfully";
         }
     }
     

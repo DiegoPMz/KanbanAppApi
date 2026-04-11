@@ -19,6 +19,10 @@ public static class TaskErrors
     public static Error DescriptionTooLong(int max) => Error.Validation(
         code: "TASK_DESCRIPTION_TOO_LONG",
         description: $"The description cannot be longer than {max} characters.");
+    
+    public static Error InvalidDescription => Error.Validation(
+        code: "Task.InvalidDescription",
+        description: "The description cannot be empty or consist only of white space if provided.");
 
     public static Error InvalidPriority = Error.Validation(
         code: "TASK_INVALID_PRIORITY",
@@ -31,4 +35,8 @@ public static class TaskErrors
     public static Error SubTaskNotFound(string id) => Error.NotFound(
         code: "TASK_SUBTASK_NOT_FOUND",
         description: $"SubTask with identifier '{id}' could not be found in this task.");
+    
+    public static Error InvalidColumnId => Error.Validation(
+        code: "Task.InvalidColumnId",
+        description: "The column ID cannot be empty.");
 }

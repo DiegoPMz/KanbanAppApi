@@ -43,15 +43,17 @@ public class CreateTask
             
             if (!isDataValid) return Error.Validation("The column or board sent doesn't exist.");
     
-            var task = new TaskModel(
+            var task = TaskModel.Create(
                 command.Title,
                 command.Priority, 
                 command.ColumnId,
                 command.Description,
                 command.IsCompleted
             );
+
+            if (task.IsError) return task.Errors; 
     
-            var taskCreated = context.Tasks.Add(task);
+            var taskCreated = context.Tasks.Add(task.Value);
             await context.SaveChangesAsync(ct);
     
             return TaskDto.FromEntity(taskCreated.Entity);
